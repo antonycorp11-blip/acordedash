@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+        {
+            "source": "/emusys-api/:path*",
+            "destination": "https://api.emusys.com.br/:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
