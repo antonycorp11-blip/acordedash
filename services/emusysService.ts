@@ -28,7 +28,14 @@ export const emusysService = {
                 if (nextCursor) url += `&cursor=${encodeURIComponent(nextCursor)}`;
 
                 console.log('Fetching Emusys URL:', url);
-                const response = await fetch(url, { headers: { 'token': API_TOKEN, 'Accept': 'application/json' } });
+                const response = await fetch(url, {
+                    headers: {
+                        'token': API_TOKEN,
+                        'Token': API_TOKEN, // Algumas APIs são case-sensitive na nuvem
+                        'Authorization': API_TOKEN, // Terceira opção de fallback
+                        'Accept': 'application/json'
+                    }
+                });
                 if (!response.ok) {
                     const text = await response.text();
                     console.error(`Erro API Emusys (${response.status}):`, text.substring(0, 200));
