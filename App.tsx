@@ -350,6 +350,27 @@ const App: React.FC = () => {
 
       addToast(`Sincronização concluída!`, "success");
       setView('dashboard');
+
+      // AUTOMATIC CLOUD SYNC: Garantir que os dados do Emusys subam para o banco REPORTCELL
+      setTimeout(async () => {
+        try {
+          // Buscamos o estado MAIS RECENTE para garantir persistência correta
+          // Nota: Como o setState é assíncrono, usamos as variáveis locais que representam o novo estado
+          const updatedTeachers = await new Promise<Teacher[]>(res => setTeachers(prev => { res(prev); return prev; }));
+          const updatedSlots = await new Promise<ScheduleSlot[]>(res => setSlots(prev => { res(prev); return prev; }));
+
+          await dbService.syncAll({
+            teachers: updatedTeachers,
+            slots: updatedSlots,
+            confirmations,
+            expenses
+          });
+          console.log('Background Sync to Supabase Complete');
+        } catch (syncErr) {
+          console.warn('Erro ao salvar no banco após Emusys:', syncErr);
+        }
+      }, 500);
+
     } catch (err) {
       console.error(err);
       addToast("Erro na sincronização.", "error");
