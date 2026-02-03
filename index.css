@@ -1,0 +1,49 @@
+
+/* Responsive Overrides */
+@media (max-width: 768px) {
+  .glass-panel {
+    border-radius: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+  }
+  
+  header {
+    padding: 1rem 1.5rem !important;
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+  }
+
+  main {
+    padding-bottom: 5rem !important;
+  }
+
+  /* Weekly View Scrolling */
+  .weekly-view-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modals on Mobile */
+  .modal-content {
+    width: 95% !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Glassmorphism improvements */
+.glass-panel {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Hide scrollbars but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

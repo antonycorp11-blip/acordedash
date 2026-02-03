@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConfirmAula - Studio Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            studio: {
+              orange: '#f97316',
+              black: '#111111',
+              brown: '#4a3728',
+              beige: '#faf9f6',
+              sand: '#f2ece0',
+              cream: '#ffffff',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* LIGHT THEME (Default) */
+    body {
+      background-color: #faf9f6;
+      color: #111111;
+    }
+
+    .main-container {
+      background-color: #faf9f6;
+      transition: background-color 0.3s ease;
+    }
+
+    .glass-panel {
+      background: #ffffff;
+      border: 1px solid rgba(74, 55, 40, 0.08);
+    }
+
+    .card-bg {
+      background-color: #ffffff;
+      border: 1px solid #f2ece0;
+    }
+
+    /* DARK THEME */
+    html.dark body {
+      background-color: #0d0d0d !important;
+      color: #faf9f6 !important;
+    }
+
+    html.dark .main-container {
+      background-color: #0d0d0d !important;
+    }
+
+    html.dark .glass-panel {
+      background: #121212 !important;
+      border: 1px solid rgba(249, 115, 22, 0.15) !important;
+    }
+
+    html.dark .card-bg {
+      background-color: #121212 !important;
+      border: 1px solid #1a1a1a !important;
+      color: #faf9f6 !important;
+    }
+
+    html.dark .text-studio-black {
+      color: #faf9f6 !important;
+    }
+
+    html.dark .text-studio-brown {
+      color: #a1a1aa !important;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(10px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .animate-slide {
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "xlsx": "https://esm.sh/xlsx@0.18.5"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>

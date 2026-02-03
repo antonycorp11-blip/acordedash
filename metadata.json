@@ -1,0 +1,5 @@
+{
+  "name": "ConfirmAula - Gestão de Agendas",
+  "description": "Aplicativo para agilizar a confirmação de aulas e gerar mensagens automáticas para professores via WhatsApp.",
+  "requestFramePermissions": []
+}
