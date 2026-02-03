@@ -24,15 +24,12 @@ export const emusysService = {
         let hasMore = true;
         try {
             while (hasMore) {
-                let url = `${EMUSYS_API_URL}/aulas?data_hora_inicial=${encodeURIComponent(startDate)}&data_hora_final=${encodeURIComponent(endDate)}`;
+                let url = `${EMUSYS_API_URL}/aulas?token=${API_TOKEN}&data_hora_inicial=${encodeURIComponent(startDate)}&data_hora_final=${encodeURIComponent(endDate)}`;
                 if (nextCursor) url += `&cursor=${encodeURIComponent(nextCursor)}`;
 
                 console.log('Fetching Emusys URL:', url);
                 const response = await fetch(url, {
                     headers: {
-                        'token': API_TOKEN,
-                        'Token': API_TOKEN, // Algumas APIs são case-sensitive na nuvem
-                        'Authorization': API_TOKEN, // Terceira opção de fallback
                         'Accept': 'application/json'
                     }
                 });
@@ -96,7 +93,7 @@ export const emusysService = {
 
             // 1. Validar se a conexão básica está funcionando e qual a resposta de um endpoint OK
             try {
-                const testRes = await fetch(`${EMUSYS_API_URL}/aulas/?data_hora_inicial=${startDate} 00:00:00&data_hora_final=${startDate} 00:10:00`, {
+                const testRes = await fetch(`${EMUSYS_API_URL}/aulas?token=${API_TOKEN}&data_hora_inicial=${startDate} 00:00:00&data_hora_final=${startDate} 00:10:00`, {
                     headers: { 'token': API_TOKEN }
                 });
                 console.log('--- TESTE DE CONEXÃO ---');
@@ -118,7 +115,7 @@ export const emusysService = {
                     const baseUrl = ver === '/v1/' ? EMUSYS_API_URL : '/emusys-api';
                     const endpoint = mod.startsWith('financeiro') ? `/${mod}` : `/${mod}/`;
 
-                    const url = `${baseUrl}${endpoint}?data_vencimento_inicial=${startDate}&data_vencimento_final=${endDate}`;
+                    const url = `${baseUrl}${endpoint}?token=${API_TOKEN}&data_vencimento_inicial=${startDate}&data_vencimento_final=${endDate}`;
 
                     try {
                         const response = await fetch(url, { headers: { 'token': API_TOKEN } });
@@ -157,7 +154,7 @@ export const emusysService = {
 
             const candidates = ['pagamentos_professores', 'pagamentos', 'extrato_professores', 'lancamentos'];
             for (const mod of candidates) {
-                const url = `${EMUSYS_API_URL}/${mod}?data_pagamento_inicial=${startDate}&data_pagamento_final=${endDate}`;
+                const url = `${EMUSYS_API_URL}/${mod}?token=${API_TOKEN}&data_pagamento_inicial=${startDate}&data_pagamento_final=${endDate}`;
                 try {
                     const response = await fetch(url, { headers: { 'token': API_TOKEN } });
                     if (response.ok) {
