@@ -24,8 +24,10 @@ export const emusysService = {
         let hasMore = true;
         try {
             while (hasMore) {
-                let url = `${EMUSYS_API_URL}/aulas/?data_hora_inicial=${encodeURIComponent(startDate)}&data_hora_final=${encodeURIComponent(endDate)}`;
+                let url = `${EMUSYS_API_URL}/aulas?data_hora_inicial=${encodeURIComponent(startDate)}&data_hora_final=${encodeURIComponent(endDate)}`;
                 if (nextCursor) url += `&cursor=${encodeURIComponent(nextCursor)}`;
+
+                console.log('Fetching Emusys URL:', url);
                 const response = await fetch(url, { headers: { 'token': API_TOKEN, 'Accept': 'application/json' } });
                 if (!response.ok) {
                     const text = await response.text();
@@ -148,7 +150,7 @@ export const emusysService = {
 
             const candidates = ['pagamentos_professores', 'pagamentos', 'extrato_professores', 'lancamentos'];
             for (const mod of candidates) {
-                const url = `${EMUSYS_API_URL}/${mod}/?data_pagamento_inicial=${startDate}&data_pagamento_final=${endDate}`;
+                const url = `${EMUSYS_API_URL}/${mod}?data_pagamento_inicial=${startDate}&data_pagamento_final=${endDate}`;
                 try {
                     const response = await fetch(url, { headers: { 'token': API_TOKEN } });
                     if (response.ok) {

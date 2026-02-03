@@ -6,7 +6,7 @@
             "destination": "https://api.emusys.com.br/:path*"
         },
         {
-            "source": "/((?!emusys-api).*)",
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ]
