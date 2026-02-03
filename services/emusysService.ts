@@ -27,7 +27,11 @@ export const emusysService = {
                 let url = `${EMUSYS_API_URL}/aulas/?data_hora_inicial=${encodeURIComponent(startDate)}&data_hora_final=${encodeURIComponent(endDate)}`;
                 if (nextCursor) url += `&cursor=${encodeURIComponent(nextCursor)}`;
                 const response = await fetch(url, { headers: { 'token': API_TOKEN, 'Accept': 'application/json' } });
-                if (!response.ok) throw new Error(`Erro API Aulas: ${response.status}`);
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error(`Erro API Emusys (${response.status}):`, text.substring(0, 200));
+                    throw new Error(`Erro API Aulas: ${response.status}`);
+                }
                 const data = await response.json();
                 const items = data.items || [];
                 allItems = [...allItems, ...items];

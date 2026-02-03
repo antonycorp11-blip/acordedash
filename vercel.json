@@ -1,11 +1,12 @@
 {
+    "cleanUrls": true,
     "rewrites": [
         {
             "source": "/emusys-api/:path*",
             "destination": "https://api.emusys.com.br/:path*"
         },
         {
-            "source": "/(.*)",
+            "source": "/((?!emusys-api).*)",
             "destination": "/index.html"
         }
     ]
