@@ -502,7 +502,19 @@ const App: React.FC = () => {
       />
 
       <main className={`flex-1 flex overflow-hidden glass-panel md:rounded-l-[3rem] md:my-2 md:mr-0 border-y border-l border-studio-brown/10 relative pb-20 md:pb-0 ${view === 'calendar' ? 'flex-row' : 'flex-col md:flex-row'}`}>
-        <div className={`flex-1 flex flex-col min-w-0 ${view === 'calendar' ? 'hidden md:flex' : 'flex'}`}>
+        {/* Mobile Calendar Strip (Left Side) */}
+        {(view === 'calendar') && (
+          <div className="md:hidden h-full">
+            <MonthlyCalendar
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              slots={slots}
+              teacherId={selectedTeacherId}
+            />
+          </div>
+        )}
+
+        <div className="flex-1 flex flex-col min-w-0">
           <header className="py-6 px-6 md:px-10 flex flex-col gap-5 border-b border-studio-brown/5 bg-white/50 dark:bg-studio-black/50 backdrop-blur-md sticky top-0 z-40">
             <div className="flex items-center justify-between w-full">
               <div className="flex flex-col">
@@ -570,12 +582,38 @@ const App: React.FC = () => {
               />
             )}
             {view === 'calendar' && (
-              <MonthlyCalendar
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
-                slots={slots}
-                teacherId={selectedTeacherId}
-              />
+              <>
+                <div className="hidden md:block h-full">
+                  <MonthlyCalendar
+                    selectedDate={selectedDate}
+                    onSelectDate={setSelectedDate}
+                    slots={slots}
+                    teacherId={selectedTeacherId}
+                  />
+                </div>
+                <div className="md:hidden">
+                  <DayDetailPanel
+                    date={selectedDate}
+                    teacherId={selectedTeacherId}
+                    teachers={teachers}
+                    slots={slots}
+                    confirmations={confirmations}
+                    contactedStatuses={contactedStatuses}
+                    onToggle={(d, id) => {
+                      const cur = confirmations[d] || [];
+                      setConfirmations({ ...confirmations, [d]: cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id] });
+                    }}
+                    onContact={(d, id) => {
+                      const cur = contactedStatuses[d] || [];
+                      if (!cur.includes(id)) {
+                        setContactedStatuses({ ...contactedStatuses, [d]: [...cur, id] });
+                      }
+                    }}
+                    hideSidebarStyles={true}
+                    onToast={addToast}
+                  />
+                </div>
+              </>
             )}
             {view === 'weekly' && (
               <WeeklyView
@@ -620,20 +658,31 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Calendar Strip on mobile is rendered inside MonthlyCalendar (fixed), 
-            but we need DayDetailPanel to be visible on mobile in calendar view */}
         {(view === 'calendar') && (
-          <div className="md:hidden">
-            <MonthlyCalendar
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              slots={slots}
+          <div className="hidden md:block">
+            <DayDetailPanel
+              date={selectedDate}
               teacherId={selectedTeacherId}
+              teachers={teachers}
+              slots={slots}
+              confirmations={confirmations}
+              contactedStatuses={contactedStatuses}
+              onToggle={(d, id) => {
+                const cur = confirmations[d] || [];
+                setConfirmations({ ...confirmations, [d]: cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id] });
+              }}
+              onContact={(d, id) => {
+                const cur = contactedStatuses[d] || [];
+                if (!cur.includes(id)) {
+                  setContactedStatuses({ ...contactedStatuses, [d]: [...cur, id] });
+                }
+              }}
+              onToast={addToast}
             />
           </div>
         )}
 
-        {(view !== 'weekly' && view !== 'dashboard' && view !== 'financial') && (
+        {(view === 'teachers') && (
           <DayDetailPanel
             date={selectedDate}
             teacherId={selectedTeacherId}

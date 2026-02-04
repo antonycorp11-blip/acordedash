@@ -12,9 +12,10 @@ interface Props {
   onToggle: (date: string, id: string) => void;
   onContact: (date: string, id: string) => void;
   onToast: (msg: string, type?: string) => void;
+  hideSidebarStyles?: boolean;
 }
 
-const DayDetailPanel: React.FC<Props> = ({ date, teacherId, teachers, slots, confirmations, contactedStatuses, onToggle, onContact, onToast }) => {
+const DayDetailPanel: React.FC<Props> = ({ date, teacherId, teachers, slots, confirmations, contactedStatuses, onToggle, onContact, onToast, hideSidebarStyles }) => {
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState({ title: '', body: '', slotId: '' });
 
@@ -106,14 +107,22 @@ const DayDetailPanel: React.FC<Props> = ({ date, teacherId, teachers, slots, con
   };
 
   return (
-    <aside className="w-full md:w-[340px] h-full flex flex-col border-l border-studio-brown/10 main-container overflow-hidden animate-slide">
-      <div className="p-5 pb-3 space-y-1">
-        <span className="text-[10px] font-black uppercase text-studio-orange tracking-[0.3em]">AGENDA DIÁRIA</span>
-        <h4 className="text-xl font-black text-studio-black dark:text-studio-beige uppercase tracking-tight leading-none">{dowName}</h4>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs font-bold text-studio-brown/60 dark:text-studio-beige/40 uppercase tracking-widest">{date.split('-').reverse().join('/')}</span>
+    <aside className={`${hideSidebarStyles ? 'w-full' : 'w-full md:w-[340px] border-l border-studio-brown/10 shadow-xl'} h-full flex flex-col main-container overflow-hidden animate-slide`}>
+      {!hideSidebarStyles && (
+        <div className="p-5 pb-3 space-y-1 bg-white/30 dark:bg-studio-black/20">
+          <span className="text-[10px] font-black uppercase text-studio-orange tracking-[0.3em]">AGENDA DIÁRIA</span>
+          <h4 className="text-xl font-black text-studio-black dark:text-studio-beige uppercase tracking-tight leading-none">{dowName}</h4>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs font-bold text-studio-brown/60 dark:text-studio-beige/40 uppercase tracking-widest">{date.split('-').reverse().join('/')}</span>
+          </div>
         </div>
-      </div>
+      )}
+      {hideSidebarStyles && (
+        <div className="px-6 pt-6 pb-2">
+          <h4 className="text-xl font-black text-studio-black dark:text-studio-beige uppercase tracking-tight">{dowName}</h4>
+          <span className="text-[10px] font-bold text-studio-brown/40 dark:text-studio-beige/40 uppercase tracking-widest">{date.split('-').reverse().join('/')}</span>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2.5 no-scrollbar">
         {daySlots.map(s => {

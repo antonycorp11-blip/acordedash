@@ -33,7 +33,6 @@ const MonthlyCalendar: React.FC<Props> = ({ selectedDate, onSelectDate, slots, t
     const dateStr = date.toISOString().split('T')[0];
     const dow = date.getDay();
 
-    // Filtra as aulas. Se a aula tiver 'date', compara a data. Caso contrário, usa o dia da semana (grade fixa).
     return slots.filter(s => {
       const matchesTeacher = teacherId ? s.teacherId === teacherId : true;
       if (!matchesTeacher) return false;
@@ -49,10 +48,12 @@ const MonthlyCalendar: React.FC<Props> = ({ selectedDate, onSelectDate, slots, t
     setViewDate(d);
   };
 
+  const MONTH_NAMES = MONTHS;
+
   return (
-    <div className="flex flex-col h-full gap-2 animate-slide max-w-4xl mx-auto h-full">
+    <div className="flex h-full animate-slide max-w-4xl mx-auto overflow-hidden">
       {/* Desktop Calendar View */}
-      <div className="hidden md:flex flex-col gap-2 h-full">
+      <div className="hidden md:flex flex-col gap-2 h-full flex-1">
         <header className="flex items-center justify-between mb-2 px-1">
           <h3 className="text-xl font-black text-studio-black dark:text-studio-beige tracking-tight uppercase">
             {MONTH_NAMES[viewDate.getMonth()]} <span className="text-studio-orange">{viewDate.getFullYear()}</span>
@@ -119,8 +120,8 @@ const MonthlyCalendar: React.FC<Props> = ({ selectedDate, onSelectDate, slots, t
         </div>
       </div>
 
-      {/* Mobile "Strip" View - Fixed on the right */}
-      <div className="md:hidden fixed top-24 bottom-24 right-2 w-14 z-50 flex flex-col items-center gap-2 py-4 bg-white/80 dark:bg-studio-black/80 backdrop-blur-md rounded-full border border-studio-orange/20 shadow-2xl overflow-y-auto no-scrollbar">
+      {/* Mobile "Strip" View - Integrated on the left */}
+      <div className="md:hidden flex flex-col items-center gap-2 py-6 w-16 h-full bg-studio-neutral-50 dark:bg-studio-black/20 border-r border-studio-brown/5 overflow-y-auto no-scrollbar shrink-0">
         {calendarDays.filter(day => day !== null).map((day) => {
           const dateStr = day!.toISOString().split('T')[0];
           const isActive = selectedDate === dateStr;
@@ -132,15 +133,15 @@ const MonthlyCalendar: React.FC<Props> = ({ selectedDate, onSelectDate, slots, t
             <button
               key={dateStr}
               onClick={() => onSelectDate(dateStr)}
-              className={`flex flex-col items-center justify-center shrink-0 w-10 h-10 rounded-full transition-all relative ${isActive
-                ? 'bg-studio-orange text-white shadow-lg scale-110'
-                : 'bg-studio-sand/30 dark:bg-studio-brown/20 text-studio-black dark:text-studio-beige'
+              className={`flex flex-col items-center justify-center shrink-0 w-11 h-11 rounded-full transition-all relative ${isActive
+                ? 'bg-studio-orange text-white shadow-lg'
+                : 'bg-white/80 dark:bg-studio-brown/10 text-studio-black dark:text-studio-beige border border-studio-brown/5'
                 }`}
             >
               <span className="text-[7px] font-black uppercase opacity-60 leading-none mb-0.5">{dowInitial}</span>
-              <span className="text-[13px] font-black leading-none">{day!.getDate()}</span>
+              <span className="text-[14px] font-black leading-none">{day!.getDate()}</span>
               {count > 0 && !isActive && (
-                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-studio-orange/40"></div>
+                <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-studio-orange/40"></div>
               )}
               {isToday && !isActive && (
                 <div className="absolute bottom-1 w-1 h-1 rounded-full bg-studio-orange"></div>
@@ -152,7 +153,5 @@ const MonthlyCalendar: React.FC<Props> = ({ selectedDate, onSelectDate, slots, t
     </div>
   );
 };
-
-const MONTH_NAMES = MONTHS;
 
 export default MonthlyCalendar;
