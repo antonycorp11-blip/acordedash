@@ -133,6 +133,23 @@ const App: React.FC = () => {
     if (isLoaded) {
       saveData(teachers, slots, confirmations, overrides, expenses);
       localStorage.setItem('contacted_statuses', JSON.stringify(contactedStatuses));
+
+      // Debounced background sync to Supabase
+      const timer = setTimeout(async () => {
+        try {
+          await dbService.syncAll({
+            teachers,
+            slots,
+            confirmations,
+            expenses
+          });
+          console.log('Auto-sync to Supabase successful');
+        } catch (err) {
+          console.warn('Auto-sync failed:', err);
+        }
+      }, 2000); // 2 seconds debounce
+
+      return () => clearTimeout(timer);
     }
   }, [teachers, slots, confirmations, overrides, contactedStatuses, expenses, isLoaded]);
 
@@ -493,39 +510,48 @@ const App: React.FC = () => {
         hasUpdates={hasUpdates}
       />
 
-      <main className="flex-1 flex overflow-hidden glass-panel md:rounded-l-[3rem] md:my-2 md:mr-0 border-y border-l border-studio-brown/10 relative pb-20 md:pb-0">
+      <main className="flex-1 flex flex-col md:flex-row overflow-hidden glass-panel md:rounded-l-[3rem] md:my-2 md:mr-0 border-y border-l border-studio-brown/10 relative pb-20 md:pb-0">
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="py-4 px-6 md:px-10 flex flex-col gap-3 border-b border-studio-brown/5">
+          <header className="py-6 px-6 md:px-10 flex flex-col gap-5 border-b border-studio-brown/5 bg-white/50 dark:bg-studio-black/50 backdrop-blur-md sticky top-0 z-40">
             <div className="flex items-center justify-between w-full">
-              <h2 className="text-xl font-black text-studio-black dark:text-studio-beige tracking-tight uppercase">
-                {view === 'calendar' ? 'Calendário' : (view === 'weekly' ? 'Visão Semanal' : (view === 'dashboard' ? 'Dashboard' : (view === 'financial' ? 'Financeiro' : 'Equipe')))}
-              </h2>
-              <div className="text-[8px] font-black text-studio-orange uppercase tracking-[0.3em]">Studio Connect v4.5</div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black text-studio-orange uppercase tracking-[0.3em] mb-1">Studio Connect v4.5</span>
+                <h2 className="text-2xl md:text-3xl font-black text-studio-black dark:text-studio-beige tracking-tight uppercase">
+                  {view === 'calendar' ? 'Calendário' : (view === 'weekly' ? 'Visão Semanal' : (view === 'dashboard' ? 'Dashboard' : (view === 'financial' ? 'Financeiro' : 'Equipe')))}
+                </h2>
+              </div>
+              <div className="hidden md:flex flex-col items-end">
+                <div className="text-[10px] font-bold text-studio-brown/40 uppercase">Aulas Hoje</div>
+                <div className="text-lg font-black text-studio-orange">{slots.filter(s => s.dayOfWeek === new Date().getDay()).length}</div>
+              </div>
             </div>
 
             {(view !== 'teachers' && view !== 'dashboard' && view !== 'financial') && (
-              <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto no-scrollbar pb-1">
-                <button
-                  onClick={() => setSelectedTeacherId('')}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedTeacherId === ''
-                    ? 'bg-studio-orange/10 border-studio-orange dark:bg-studio-orange/20 shadow-inner'
-                    : 'card-bg border-studio-sand dark:border-studio-brown/30 hover:border-studio-orange/30'
-                    }`}
-                >
-                  Todos
-                </button>
-                {teachers.map(t => (
+              <div className="flex items-center gap-3">
+                <div className="text-[9px] font-black text-studio-brown/30 uppercase tracking-widest rotate-180 [writing-mode:vertical-lr] hidden md:block">Filtros</div>
+                <div className="flex-1 flex gap-2 overflow-x-auto no-scrollbar pb-1 mask-linear-right">
                   <button
-                    key={t.id}
-                    onClick={() => setSelectedTeacherId(t.id)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedTeacherId === t.id
-                      ? 'bg-studio-orange/10 border-studio-orange dark:bg-studio-orange/20 shadow-inner'
-                      : 'card-bg border-studio-sand dark:border-studio-brown/30 hover:border-studio-orange/30'
+                    onClick={() => setSelectedTeacherId('')}
+                    className={`shrink-0 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedTeacherId === ''
+                      ? 'bg-studio-orange text-white border-studio-orange shadow-lg shadow-studio-orange/20'
+                      : 'card-bg border-studio-sand dark:border-studio-brown/30 hover:border-studio-orange/30 text-studio-brown/60 dark:text-studio-beige/40'
                       }`}
                   >
-                    {t.name.split(' ')[0]}
+                    Equipe Toda
                   </button>
-                ))}
+                  {teachers.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => setSelectedTeacherId(t.id)}
+                      className={`shrink-0 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${selectedTeacherId === t.id
+                        ? 'bg-studio-orange text-white border-studio-orange shadow-lg shadow-studio-orange/20'
+                        : 'card-bg border-studio-sand dark:border-studio-brown/30 hover:border-studio-orange/30 text-studio-brown/60 dark:text-studio-beige/40'
+                        }`}
+                    >
+                      {t.name.split(' ')[0]}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </header>

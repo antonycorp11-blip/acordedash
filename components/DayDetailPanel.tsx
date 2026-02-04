@@ -106,7 +106,7 @@ const DayDetailPanel: React.FC<Props> = ({ date, teacherId, teachers, slots, con
   };
 
   return (
-    <aside className="w-[340px] h-full flex flex-col border-l border-studio-brown/10 main-container overflow-hidden animate-slide">
+    <aside className="w-full md:w-[340px] h-full flex flex-col border-l border-studio-brown/10 main-container overflow-hidden animate-slide">
       <div className="p-5 pb-3 space-y-1">
         <span className="text-[10px] font-black uppercase text-studio-orange tracking-[0.3em]">AGENDA DIÁRIA</span>
         <h4 className="text-xl font-black text-studio-black dark:text-studio-beige uppercase tracking-tight leading-none">{dowName}</h4>
