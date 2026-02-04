@@ -18,7 +18,7 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
   const activeClass = 'bg-studio-orange text-white shadow-xl scale-110 opacity-100';
 
   return (
-    <aside className="w-full h-20 md:w-24 md:h-screen fixed bottom-0 md:relative flex md:flex-col items-center justify-center md:justify-start md:py-8 md:gap-10 bg-[#121212] z-[200] shadow-2xl shrink-0 px-2 md:px-0">
+    <aside className="w-full h-[84px] md:w-24 md:h-screen flex md:flex-col items-center justify-center md:justify-start md:py-8 md:gap-10 bg-[#121212] z-[200] shadow-2xl shrink-0 px-2 md:px-0 relative pb-[env(safe-area-inset-bottom)]">
       {/* Desktop Logo */}
       <button
         onClick={() => setView('dashboard')}
@@ -27,7 +27,7 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
         C
       </button>
 
-      <nav className="flex md:flex-col gap-3 md:gap-6 items-center flex-1 w-full justify-start md:justify-start overflow-x-auto no-scrollbar py-2 px-4">
+      <nav className="flex md:flex-col gap-3 md:gap-6 items-center flex-1 w-full justify-around md:justify-start overflow-x-auto no-scrollbar py-2 px-4 h-full">
         <button
           onClick={() => setView('dashboard')}
           className={`shrink-0 w-11 h-11 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center transition-all ${currentView === 'dashboard' ? activeClass : inactiveClass}`}
@@ -60,19 +60,19 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
           <svg className="w-5 h-5 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
         </button>
 
-        {/* Mobile-only tools in the scrollable nav */}
-        <div className="flex md:hidden items-center gap-2 pl-3 border-l border-white/10 ml-1">
-          <button onClick={onSync} className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-studio-orange text-white">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
+        {/* Mobile Tools (Separated by vertical line) */}
+        <div className="flex md:hidden items-center gap-3 pl-3 border-l border-white/10 ml-1 h-8">
+          <button onClick={onSync} className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-studio-orange text-white shadow-lg active:scale-90 transition-transform">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
           </button>
-          <button onClick={() => setDarkMode(!darkMode)} className="shrink-0 w-11 h-11 flex items-center justify-center text-xl bg-white/5 rounded-xl">
+          <button onClick={() => setDarkMode(!darkMode)} className="shrink-0 w-10 h-10 flex items-center justify-center text-xl bg-white/5 rounded-xl active:scale-95 transition-transform">
             {darkMode ? '☀️' : '🌙'}
           </button>
         </div>
       </nav>
 
       {/* Desktop Actions */}
-      <div className="hidden md:flex flex-col gap-4 pb-8 items-center w-full">
+      <div className="hidden md:flex flex-col gap-4 pb-12 items-center w-full mt-auto">
         <button
           onClick={onSync}
           className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all bg-white/5 border border-white/10 hover:bg-studio-orange hover:text-white group relative ${hasUpdates ? 'text-studio-orange' : 'text-white/40'}`}
@@ -104,9 +104,9 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
         </div>
       </div>
 
-      {/* Mobile Reset (Separated for safety) */}
-      <button onClick={onReset} className="md:hidden absolute top-4 right-4 text-white/10 active:text-red-500 transition-colors">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+      {/* Mobile Reset (Top right floating for PWA) */}
+      <button onClick={onReset} className="md:hidden absolute -top-12 right-4 w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500/30 rounded-full active:bg-red-500 active:text-white transition-all shadow-lg border border-red-500/5">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
       </button>
     </aside>
   );

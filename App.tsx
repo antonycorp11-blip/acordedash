@@ -78,6 +78,7 @@ const App: React.FC = () => {
         }
 
         // 2. Fetch from Cloud
+        let cloudTeachersFetched: any[] = [];
         try {
           const [cloudTeachers, cloudSlots, cloudConf, cloudExp] = await Promise.all([
             dbService.getTeachers(),
@@ -86,6 +87,7 @@ const App: React.FC = () => {
             dbService.getExpenses()
           ]);
 
+          cloudTeachersFetched = cloudTeachers;
           if (cloudTeachers.length > 0) setTeachers(cloudTeachers);
           if (cloudSlots.length > 0) setSlots(cloudSlots);
           if (Object.keys(cloudConf).length > 0) setConfirmations(cloudConf);
@@ -96,9 +98,11 @@ const App: React.FC = () => {
         } finally {
           setIsLoaded(true);
           setIsSyncing(false);
-          // Safety: ensure it's not staying in a loading state if cloud is empty
-          if (!hasLocalData) {
-            console.log("No local data and cloud fetch finished.");
+
+          if (cloudTeachersFetched.length > 0) {
+            addToast("Dados sincronizados da nuvem", "success");
+          } else if (!hasLocalData) {
+            addToast("Sem dados locais ou na nuvem", "info");
           }
         }
       } catch (fatalError: any) {
@@ -391,7 +395,7 @@ const App: React.FC = () => {
 
 
   return (
-    <div className="flex flex-col md:flex-row h-[100dvh] w-full overflow-hidden main-container transition-all duration-300 fixed inset-0">
+    <div className="flex flex-col-reverse md:flex-row fixed inset-0 h-[100dvh] w-full overflow-hidden main-container transition-all duration-300 bg-studio-beige dark:bg-studio-black">
       {/* Modal de Resumo de Sincronização */}
       {syncSummary && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
@@ -465,7 +469,7 @@ const App: React.FC = () => {
         hasUpdates={hasUpdates}
       />
 
-      <main className={`flex-1 flex overflow-hidden glass-panel md:rounded-l-[3rem] md:my-2 md:mr-0 border-y border-l border-studio-brown/10 relative ${view === 'calendar' ? 'flex-row' : 'flex-col md:flex-row'} h-full max-h-full`}>
+      <main className={`flex-1 flex overflow-hidden md:rounded-l-[3rem] md:my-2 md:mr-0 border-y border-l border-studio-brown/10 relative ${view === 'calendar' ? 'flex-row' : 'flex-col md:flex-row'} h-full max-h-full`}>
         {/* Mobile Calendar Strip (Left Side) */}
         {(view === 'calendar') && (
           <div className="md:hidden h-full">
@@ -523,7 +527,7 @@ const App: React.FC = () => {
             )}
           </header>
 
-          <div className="flex-1 overflow-y-auto p-6 no-scrollbar pb-24 md:pb-6">
+          <div className="flex-1 overflow-y-auto p-6 no-scrollbar pb-6">
             {view === 'dashboard' && (
               <Dashboard
                 slots={slots}
