@@ -18,7 +18,7 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
   const activeClass = 'bg-studio-orange text-white shadow-xl scale-110 opacity-100';
 
   return (
-    <aside className="w-full h-[84px] md:w-24 md:h-screen flex md:flex-col items-center justify-center md:justify-start md:py-8 md:gap-10 bg-[#121212] z-[200] shadow-2xl shrink-0 px-2 md:px-0 relative pb-[env(safe-area-inset-bottom)]">
+    <aside className="w-full md:w-24 md:h-screen flex md:flex-col items-center justify-center md:justify-start md:py-8 md:gap-10 bg-[#121212] z-[200] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] md:shadow-2xl shrink-0 px-2 md:px-0 relative pb-[env(safe-area-inset-bottom)] pt-2 md:pt-8 min-h-[72px] md:min-h-0">
       {/* Desktop Logo */}
       <button
         onClick={() => setView('dashboard')}
@@ -60,7 +60,7 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
           <svg className="w-5 h-5 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
         </button>
 
-        {/* Mobile Tools (Separated by vertical line) */}
+        {/* Mobile Tools */}
         <div className="flex md:hidden items-center gap-3 pl-3 border-l border-white/10 ml-1 h-8">
           <button onClick={onSync} className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-studio-orange text-white shadow-lg active:scale-90 transition-transform">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
@@ -104,8 +104,8 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
         </div>
       </div>
 
-      {/* Mobile Reset (Top right floating for PWA) */}
-      <button onClick={onReset} className="md:hidden absolute -top-12 right-4 w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500/30 rounded-full active:bg-red-500 active:text-white transition-all shadow-lg border border-red-500/5">
+      {/* Mobile Reset (Absolute Top right for PWA context) */}
+      <button onClick={onReset} className="md:hidden absolute -top-14 right-4 w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500/30 rounded-full active:bg-red-500 active:text-white transition-all shadow-lg border border-red-500/5 backdrop-blur-sm">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
       </button>
     </aside>

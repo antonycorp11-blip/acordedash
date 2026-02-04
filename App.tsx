@@ -100,9 +100,11 @@ const App: React.FC = () => {
           setIsSyncing(false);
 
           if (cloudTeachersFetched.length > 0) {
-            addToast("Dados sincronizados da nuvem", "success");
-          } else if (!hasLocalData) {
-            addToast("Sem dados locais ou na nuvem", "info");
+            addToast("Agenda carregada do servidor", "success");
+          } else if (hasLocalData) {
+            addToast("Usando agenda local", "info");
+          } else {
+            addToast("Sem dados salvos", "info");
           }
         }
       } catch (fatalError: any) {
@@ -245,6 +247,16 @@ const App: React.FC = () => {
       setSlots(prev => [...prev, ...newSlots]);
       addToast(`${importedRows} aulas importadas!`, "success");
       setView('dashboard');
+
+      // Envia para o servidor após importação de forma assíncrona
+      setTimeout(() => {
+        dbService.syncAll({
+          teachers: sortedTeachers,
+          slots: [...slots, ...newSlots],
+          confirmations: confirmations,
+          expenses: expenses
+        }).catch(err => console.error("Cloud Sync Error:", err));
+      }, 1500);
     } catch (err) {
       addToast("Erro na leitura.", "error");
     }
@@ -395,7 +407,7 @@ const App: React.FC = () => {
 
 
   return (
-    <div className="flex flex-col-reverse md:flex-row fixed inset-0 h-[100dvh] w-full overflow-hidden main-container transition-all duration-300 bg-studio-beige dark:bg-studio-black">
+    <div className="flex flex-col md:flex-row h-[100dvh] w-full overflow-hidden bg-studio-black">
       {/* Modal de Resumo de Sincronização */}
       {syncSummary && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
@@ -458,18 +470,7 @@ const App: React.FC = () => {
         ))}
       </div>
 
-      <Sidebar
-        currentView={view}
-        setView={setView}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
-        onImport={handleImportXlsx}
-        onSync={handleEmusysSync}
-        onReset={() => confirm("Apagar todos os dados definitivamente?") && (setTeachers([]), setSlots([]), setConfirmations({}), setOverrides({}), setExpenses([]), addToast("Sistema reiniciado", "success"))}
-        hasUpdates={hasUpdates}
-      />
-
-      <main className={`flex-1 flex overflow-hidden md:rounded-l-[3rem] md:my-2 md:mr-0 border-y border-l border-studio-brown/10 relative ${view === 'calendar' ? 'flex-row' : 'flex-col md:flex-row'} h-full max-h-full`}>
+      <main className={`flex-1 flex overflow-hidden md:rounded-l-[3rem] md:my-2 md:mr-0 border-y border-l border-studio-brown/10 relative ${view === 'calendar' ? 'flex-row' : 'flex-col md:flex-row'} bg-studio-beige dark:bg-studio-black min-h-0`}>
         {/* Mobile Calendar Strip (Left Side) */}
         {(view === 'calendar') && (
           <div className="md:hidden h-full">
@@ -671,6 +672,17 @@ const App: React.FC = () => {
           />
         )}
       </main>
+
+      <Sidebar
+        currentView={view}
+        setView={setView}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        onImport={handleImportXlsx}
+        onSync={handleEmusysSync}
+        onReset={() => confirm("Apagar todos os dados definitivamente?") && (setTeachers([]), setSlots([]), setConfirmations({}), setOverrides({}), setExpenses([]), addToast("Sistema reiniciado", "success"))}
+        hasUpdates={hasUpdates}
+      />
 
       {/* Persistence Loading Overlay */}
       {isSyncing && teachers.length === 0 && (
