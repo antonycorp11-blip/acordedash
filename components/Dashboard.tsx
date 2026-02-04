@@ -5,11 +5,10 @@ interface Props {
   slots: ScheduleSlot[];
   teachers: Teacher[];
   onContact: (date: string, id: string) => void;
-  onRestore?: () => void;
   isSyncing?: boolean;
 }
 
-const Dashboard: React.FC<Props> = ({ slots, teachers, onContact, onRestore, isSyncing }) => {
+const Dashboard: React.FC<Props> = ({ slots, teachers, onContact, isSyncing }) => {
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState({ title: '', body: '', slotId: '', date: '' });
 

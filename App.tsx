@@ -530,7 +530,6 @@ const App: React.FC = () => {
                     setContactedStatuses({ ...contactedStatuses, [d]: [...cur, id] });
                   }
                 }}
-                onRestore={handleCloudRestore}
                 isSyncing={isSyncing}
               />
             )}
