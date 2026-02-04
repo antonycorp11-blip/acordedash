@@ -54,13 +54,13 @@ const App: React.FC = () => {
   useLayoutEffect(() => {
     const initLoad = async () => {
       try {
-        // 1. Load Local first (Wrapped in try-catch for safety)
+        setIsSyncing(true);
+        // 1. Load Local first
         let local: any = {};
         try {
           local = loadData();
         } catch (e) {
           console.error("Local Storage corrupt", e);
-          localStorage.clear(); // Emergency cleanup
         }
 
         const hasLocalData = local.teachers && local.teachers.length > 0;
@@ -73,14 +73,12 @@ const App: React.FC = () => {
           setExpenses(local.expenses || []);
           const savedContacted = localStorage.getItem('contacted_statuses');
           if (savedContacted) setContactedStatuses(JSON.parse(savedContacted));
-
           setIsLoaded(true);
-          setIsSyncing(false);
+          // Don't set isSyncing false yet, wait for cloud
         }
 
-        // 2. Always try to sync from Cloud
+        // 2. Fetch from Cloud
         try {
-          console.log('Fetching from Supabase...');
           const [cloudTeachers, cloudSlots, cloudConf, cloudExp] = await Promise.all([
             dbService.getTeachers(),
             dbService.getSlots(),
@@ -92,25 +90,18 @@ const App: React.FC = () => {
           if (cloudSlots.length > 0) setSlots(cloudSlots);
           if (Object.keys(cloudConf).length > 0) setConfirmations(cloudConf);
           if (cloudExp.length > 0) setExpenses(cloudExp);
-          console.log('Cloud sync complete!');
         } catch (err: any) {
-          console.warn('Could not load from cloud.', err);
-          // If we have NO data and cloud failed, we show error
-          if (!hasLocalData) {
-            // Don't block, just let dashboard show "Sem dados" or toast
-            addToast(`Falha na nuvem: ${err.message}`, 'error');
-          }
+          console.warn('Cloud load failed', err);
+          if (!hasLocalData) addToast("Modo Offline: Usando dados locais", "info");
         } finally {
           setIsLoaded(true);
           setIsSyncing(false);
         }
       } catch (fatalError: any) {
-        setGlobalError(fatalError.message || "Erro crítico na inicialização");
+        setGlobalError(fatalError.message || "Erro crítico");
       }
     };
-
-    // Small delay to ensure browser environment is stable
-    setTimeout(initLoad, 100);
+    initLoad();
   }, []);
 
   if (globalError) {
@@ -510,8 +501,8 @@ const App: React.FC = () => {
         hasUpdates={hasUpdates}
       />
 
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden glass-panel md:rounded-l-[3rem] md:my-2 md:mr-0 border-y border-l border-studio-brown/10 relative pb-20 md:pb-0">
-        <div className="flex-1 flex flex-col min-w-0">
+      <main className={`flex-1 flex overflow-hidden glass-panel md:rounded-l-[3rem] md:my-2 md:mr-0 border-y border-l border-studio-brown/10 relative pb-20 md:pb-0 ${view === 'calendar' ? 'flex-row' : 'flex-col md:flex-row'}`}>
+        <div className={`flex-1 flex flex-col min-w-0 ${view === 'calendar' ? 'hidden md:flex' : 'flex'}`}>
           <header className="py-6 px-6 md:px-10 flex flex-col gap-5 border-b border-studio-brown/5 bg-white/50 dark:bg-studio-black/50 backdrop-blur-md sticky top-0 z-40">
             <div className="flex items-center justify-between w-full">
               <div className="flex flex-col">
@@ -629,6 +620,19 @@ const App: React.FC = () => {
           </div>
         </div>
 
+        {/* Calendar Strip on mobile is rendered inside MonthlyCalendar (fixed), 
+            but we need DayDetailPanel to be visible on mobile in calendar view */}
+        {(view === 'calendar') && (
+          <div className="md:hidden">
+            <MonthlyCalendar
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              slots={slots}
+              teacherId={selectedTeacherId}
+            />
+          </div>
+        )}
+
         {(view !== 'weekly' && view !== 'dashboard' && view !== 'financial') && (
           <DayDetailPanel
             date={selectedDate}
@@ -651,6 +655,17 @@ const App: React.FC = () => {
           />
         )}
       </main>
+
+      {/* Persistence Loading Overlay */}
+      {isSyncing && teachers.length === 0 && (
+        <div className="fixed inset-0 z-[1000] bg-studio-beige dark:bg-studio-black flex flex-col items-center justify-center p-10 text-center gap-6">
+          <div className="w-20 h-20 border-4 border-studio-orange/20 border-t-studio-orange rounded-full animate-spin"></div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-black text-studio-black dark:text-studio-beige uppercase">Conectando ao Studio</h1>
+            <p className="text-xs font-bold text-studio-brown/40 uppercase tracking-widest">Sincronizando dados com a nuvem...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

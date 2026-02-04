@@ -50,7 +50,7 @@ const MonthlyCalendar: React.FC<Props> = ({ selectedDate, onSelectDate, slots, t
   };
 
   return (
-    <div className="flex flex-col h-full gap-2 animate-slide max-w-4xl mx-auto">
+    <div className="flex flex-col h-full gap-2 animate-slide max-w-4xl mx-auto h-full">
       {/* Desktop Calendar View */}
       <div className="hidden md:flex flex-col gap-2 h-full">
         <header className="flex items-center justify-between mb-2 px-1">
@@ -119,50 +119,35 @@ const MonthlyCalendar: React.FC<Props> = ({ selectedDate, onSelectDate, slots, t
         </div>
       </div>
 
-      {/* Mobile "Roulette" View */}
-      <div className="md:hidden flex flex-col h-full">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-black text-studio-black dark:text-studio-beige uppercase">
-            {MONTH_NAMES[viewDate.getMonth()]}
-          </h3>
-          <button onClick={() => setViewDate(new Date())} className="text-[10px] font-black uppercase text-studio-orange">Hoje</button>
-        </div>
+      {/* Mobile "Strip" View - Fixed on the right */}
+      <div className="md:hidden fixed top-24 bottom-24 right-2 w-14 z-50 flex flex-col items-center gap-2 py-4 bg-white/80 dark:bg-studio-black/80 backdrop-blur-md rounded-full border border-studio-orange/20 shadow-2xl overflow-y-auto no-scrollbar">
+        {calendarDays.filter(day => day !== null).map((day) => {
+          const dateStr = day!.toISOString().split('T')[0];
+          const isActive = selectedDate === dateStr;
+          const isToday = new Date().toISOString().split('T')[0] === dateStr;
+          const count = getDayCount(day!);
+          const dowInitial = WEEKDAYS[day!.getDay()].charAt(0);
 
-        <div className="flex flex-col gap-3 overflow-y-auto no-scrollbar max-h-[70vh] pb-4">
-          {calendarDays.filter(day => day !== null).map((day) => {
-            const dateStr = day!.toISOString().split('T')[0];
-            const isActive = selectedDate === dateStr;
-            const isToday = new Date().toISOString().split('T')[0] === dateStr;
-            const count = getDayCount(day!);
-            const dowName = WEEKDAYS[day!.getDay()];
-
-            return (
-              <button
-                key={dateStr}
-                onClick={() => onSelectDate(dateStr)}
-                className={`flex items-center gap-4 p-4 rounded-3xl transition-all border ${isActive
-                  ? 'bg-studio-orange border-studio-orange text-white shadow-xl shadow-studio-orange/20 scale-[1.02]'
-                  : 'card-bg border-studio-sand dark:border-studio-brown/10 text-studio-black dark:text-studio-beige'
-                  }`}
-              >
-                <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-2xl ${isActive ? 'bg-white/20' : 'bg-studio-sand/50 dark:bg-studio-brown/30'}`}>
-                  <span className="text-[9px] font-black uppercase opacity-60">{dowName}</span>
-                  <span className="text-lg font-black leading-none">{day!.getDate()}</span>
-                </div>
-                <div className="flex-1 text-left">
-                  <div className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-white/80' : 'text-studio-orange'}`}>
-                    {count} {count === 1 ? 'Aula' : 'Aulas'}
-                  </div>
-                  {isActive && <div className="text-[8px] font-bold uppercase opacity-60">Selecionado</div>}
-                </div>
-                {isToday && !isActive && <div className="w-2 h-2 rounded-full bg-studio-orange"></div>}
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isActive ? 'bg-white/20' : 'bg-studio-sand/20'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+          return (
+            <button
+              key={dateStr}
+              onClick={() => onSelectDate(dateStr)}
+              className={`flex flex-col items-center justify-center shrink-0 w-10 h-10 rounded-full transition-all relative ${isActive
+                ? 'bg-studio-orange text-white shadow-lg scale-110'
+                : 'bg-studio-sand/30 dark:bg-studio-brown/20 text-studio-black dark:text-studio-beige'
+                }`}
+            >
+              <span className="text-[7px] font-black uppercase opacity-60 leading-none mb-0.5">{dowInitial}</span>
+              <span className="text-[13px] font-black leading-none">{day!.getDate()}</span>
+              {count > 0 && !isActive && (
+                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-studio-orange/40"></div>
+              )}
+              {isToday && !isActive && (
+                <div className="absolute bottom-1 w-1 h-1 rounded-full bg-studio-orange"></div>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
