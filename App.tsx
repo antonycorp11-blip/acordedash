@@ -385,44 +385,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleCloudSync = async () => {
-    addToast("Nuvem: Enviando backup...", "info");
-    try {
-      await dbService.syncAll({
-        teachers,
-        slots,
-        confirmations,
-        expenses
-      });
-      addToast("Backup na nuvem realizado com sucesso!", "success");
-    } catch (err: any) {
-      console.error(err);
-      addToast(`Erro na nuvem: ${err.message || 'Falha desconhecida'}`, "error");
-    }
-  };
-
-  const handleCloudRestore = async () => {
-    addToast("Nuvem: Baixando dados...", "info");
-    try {
-      const [cloudTeachers, cloudSlots, cloudConf, cloudExp] = await Promise.all([
-        dbService.getTeachers(),
-        dbService.getSlots(),
-        dbService.getConfirmations(),
-        dbService.getExpenses()
-      ]);
-
-      if (cloudTeachers.length > 0) setTeachers(cloudTeachers);
-      if (cloudSlots.length > 0) setSlots(cloudSlots);
-      if (Object.keys(cloudConf).length > 0) setConfirmations(cloudConf);
-      if (cloudExp.length > 0) setExpenses(cloudExp);
-
-      addToast("Dados restaurados da nuvem!", "success");
-      setTimeout(() => window.location.reload(), 1500); // Reload to ensure state consistency
-    } catch (err: any) {
-      console.error(err);
-      addToast(`Erro ao baixar: ${err.message || 'Falha desconhecida'}`, "error");
-    }
-  };
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden main-container transition-all duration-300">
@@ -495,8 +457,6 @@ const App: React.FC = () => {
         setDarkMode={setDarkMode}
         onImport={handleImportXlsx}
         onSync={handleEmusysSync}
-        onCloudSync={handleCloudSync}
-        onCloudRestore={handleCloudRestore}
         onReset={() => confirm("Apagar todos os dados definitivamente?") && (setTeachers([]), setSlots([]), setConfirmations({}), setOverrides({}), setExpenses([]), addToast("Sistema reiniciado", "success"))}
         hasUpdates={hasUpdates}
       />

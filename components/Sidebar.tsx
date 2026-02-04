@@ -8,13 +8,11 @@ interface Props {
   setDarkMode: (v: boolean) => void;
   onImport: (file: File) => void;
   onSync: () => void;
-  onCloudSync: () => void;
-  onCloudRestore: () => void;
   onReset: () => void;
   hasUpdates?: boolean;
 }
 
-const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode, onImport, onSync, onCloudSync, onCloudRestore, onReset, hasUpdates }) => {
+const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode, onImport, onSync, onReset, hasUpdates }) => {
   // Always light for the dark sidebar on mobile
   const iconColor = 'text-white/60';
   const inactiveClass = `${iconColor} hover:text-studio-orange hover:bg-white/10`;
@@ -71,73 +69,51 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
           <svg className="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
         </button>
 
-        {/* Sync Buttons on Mobile - More visible now */}
+        {/* Sync Button on Mobile - Integrated and clean */}
         <div className="flex md:hidden items-center gap-4 pl-4 border-l border-white/10 ml-2">
           <button
             onClick={onSync}
-            className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-white/5 text-studio-orange transition-all relative border border-white/5 active:scale-95"
-            title={hasUpdates ? "Há atualizações no Emusys!" : "Sincronizar Emusys"}
+            className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center bg-studio-orange text-white transition-all relative shadow-lg shadow-studio-orange/20 active:scale-95"
+            title={hasUpdates ? "Atualizar do Emusys" : "Sincronizar Emusys"}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
-            <div className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#121212] ${hasUpdates ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
-          </button>
-
-          <button
-            onClick={onCloudRestore}
-            className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-white/5 text-white/80 transition-all border border-white/5 active:scale-95"
-            title="Baixar Nuvem"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          </button>
-
-          <button
-            onClick={onCloudSync}
-            className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-white/5 text-white/30 transition-all border border-white/5 active:scale-95"
-            title="Salvar Nuvem"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
+            {hasUpdates && <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-[#121212] animate-pulse"></div>}
           </button>
         </div>
       </nav>
 
       {/* Desktop Actions */}
-      <div className="hidden md:flex flex-col gap-6 items-center mt-auto pb-4">
-        <button
-          onClick={onCloudSync}
-          className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all relative ${inactiveClass}`}
-          title="Salvar Backup na Nuvem"
-        >
-          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
-        </button>
-        <button
-          onClick={onCloudRestore}
-          className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all relative ${inactiveClass}`}
-          title="Baixar Backup da Nuvem"
-        >
-          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-        </button>
-
+      <div className="hidden md:flex flex-col gap-4 pb-8">
         <button
           onClick={onSync}
-          className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all relative ${inactiveClass}`}
-          title={hasUpdates ? "Há atualizações no Emusys!" : "Sincronizado com Emusys"}
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all bg-white/5 border border-white/10 hover:bg-studio-orange hover:text-white group relative ${hasUpdates ? 'text-studio-orange' : 'text-white/40'}`}
+          title="Sincronizar Emusys"
         >
           <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
-          <div className={`absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-[#121212] ${hasUpdates ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+          {hasUpdates && <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#121212] animate-pulse"></div>}
         </button>
 
-        <label className="cursor-pointer group">
-          <input type="file" className="hidden" accept=".xlsx" onChange={e => e.target.files?.[0] && onImport(e.target.files[0])} />
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${inactiveClass}`} title="Importar Excel">
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-          </div>
-        </label>
+        <button
+          onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.xlsx';
+            input.onchange = (e) => onImport((e.target as HTMLInputElement).files![0]);
+            input.click();
+          }}
+          className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 transition-all"
+          title="Importar Excel"
+        >
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" /></svg>
+        </button>
+      </div>
 
+      <div className="flex flex-col gap-2 items-center mt-auto pb-4">
         <button onClick={() => setDarkMode(!darkMode)} className="text-2xl hover:scale-110 transition-transform p-2 bg-white/5 rounded-xl">
           {darkMode ? '☀️' : '🌙'}
         </button>
 
-        <button onClick={onReset} className="w-10 h-10 flex items-center justify-center text-stone-700 hover:text-red-500 transition-all">
+        <button onClick={onReset} className="w-10 h-10 flex items-center justify-center text-white/20 hover:text-red-500 transition-all">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
         </button>
       </div>
