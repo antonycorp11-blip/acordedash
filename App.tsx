@@ -86,8 +86,8 @@ const App: React.FC = () => {
         const mergedT: Teacher[] = [];
         const idMap = new Map<string, string>();
 
-        // APENAS PROFESSORES QUE VÊM DA NUVEM (API) - Removemos permanentemente o local.teachers
-        const allT = cloudT;
+        // UNIFICAÇÃO INCLUSIVA (Nuvem + Local) - Garante que nada suma no refresh
+        const allT = [...cloudT, ...(local.teachers || [])];
 
         // Ordenar por comprimento de nome descendente para pegar o nome mais completo como base
         allT.sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0)).forEach(t => {
@@ -106,8 +106,8 @@ const App: React.FC = () => {
 
         const finalT = mergedT.sort((a, b) => a.name.localeCompare(b.name));
 
-        // Slots: Prioridade total para a Nuvem + Unificação Atômica
-        const rawSlots = cloudS.length > 0 ? cloudS : (local.slots || []);
+        // Slots: MESCLAGEM INCLUSIVA (Não apaga o celular se a nuvem estiver incompleta)
+        const rawSlots = [...cloudS, ...(local.slots || [])];
         const slotMap = new Map<string, ScheduleSlot>();
 
         rawSlots.forEach(s => {
