@@ -48,10 +48,12 @@ html,
 body {
   background-color: #121212 !important;
   /* Prevents white bars in PWA */
-  height: 100%;
+  height: 100vh;
+  height: 100dvh;
   margin: 0;
   padding: 0;
   overflow: hidden;
+  overscroll-behavior-y: none;
 }
 
 #root {

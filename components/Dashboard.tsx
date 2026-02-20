@@ -92,13 +92,11 @@ const Dashboard: React.FC<Props> = ({ slots, teachers, onContact, isSyncing }) =
       .sort((a, b) => b[1] - a[1])
       .map(([id, count]) => {
         // Busca profunda: Tenta encontrar o professor pelo ID
-        const t = teachers.find(t => t.id === id);
+        const t = teachers.find(teacher => teacher.id === id);
         let displayName = t?.name || id;
 
-        // Se o nome ainda for um UUID (comuns em dados legados), tenta limpar
-        if (displayName.match(/^[0-9a-f-]{36}$/i)) {
-          displayName = "Prof. em Transição";
-        } else {
+        // Clean up display name
+        if (displayName.startsWith('t-')) {
           displayName = displayName.replace('t-', '');
         }
 
@@ -170,33 +168,33 @@ const Dashboard: React.FC<Props> = ({ slots, teachers, onContact, isSyncing }) =
 
 
   return (
-    <div className="space-y-6 md:space-y-10 animate-slide pb-24 max-w-[1400px] mx-auto p-4 md:p-0">
+    <div className="space-y-10 md:space-y-16 animate-slide pb-24 max-w-[1700px] mx-auto p-4 md:p-0">
       {/* 4 Cards Principais */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <div className="card-bg p-4 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm">
-          <span className="text-[8px] md:text-[10px] font-black text-studio-orange uppercase tracking-widest block mb-2">Alunos</span>
-          <div className="flex items-baseline gap-1 md:gap-2">
-            <span className="text-2xl md:text-4xl font-black text-studio-black dark:text-studio-beige">{analytics.totalAlunosUnicos}</span>
-            <span className="text-[8px] font-bold text-studio-brown/40 uppercase tracking-tighter">Matrículas</span>
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-10">
+        <div className="card-bg p-5 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-sm flex flex-col justify-between">
+          <span className="text-[8px] md:text-[11px] font-black text-studio-orange uppercase tracking-[0.4em] block mb-2 md:mb-4">Métricas Ativas</span>
+          <div className="flex items-baseline gap-1 md:gap-4">
+            <span className="text-3xl md:text-6xl font-black text-studio-black dark:text-studio-beige">{analytics.totalAlunosUnicos}</span>
+            <span className="text-[8px] md:text-[10px] font-black text-studio-brown/40 uppercase tracking-widest">Alunos</span>
           </div>
         </div>
-        <div className="card-bg p-4 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border-l-4 border-studio-orange">
-          <span className="text-[8px] md:text-[10px] font-black text-studio-orange uppercase tracking-widest block mb-2">Experimentais</span>
-          <div className="flex items-baseline gap-1 md:gap-2">
-            <span className="text-2xl md:text-4xl font-black text-studio-black dark:text-studio-beige">{analytics.experimentalWeekly.length}</span>
-            <span className="text-[8px] font-bold text-studio-brown/40 uppercase tracking-tighter">Essa Sem.</span>
+        <div className="card-bg p-5 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-sm border-l-4 md:border-l-8 border-studio-orange flex flex-col justify-between">
+          <span className="text-[8px] md:text-[11px] font-black text-studio-orange uppercase tracking-[0.4em] block mb-2 md:mb-4">Oportunidades</span>
+          <div className="flex items-baseline gap-1 md:gap-4">
+            <span className="text-3xl md:text-6xl font-black text-studio-black dark:text-studio-beige">{analytics.experimentalWeekly.length}</span>
+            <span className="text-[8px] md:text-[10px] font-black text-studio-brown/40 uppercase tracking-widest">Exp.</span>
           </div>
         </div>
-        <div className="bg-studio-orange p-4 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-studio-orange/20 text-white">
-          <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest block mb-2 opacity-80">Ocupação</span>
-          <div className="flex items-baseline gap-0.5 md:gap-1">
-            <span className="text-2xl md:text-4xl font-black">{analytics.occupationRate}</span>
-            <span className="text-sm md:text-xl font-bold">%</span>
+        <div className="bg-gradient-to-br from-studio-orange to-orange-500 p-5 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl shadow-studio-orange/30 text-white flex flex-col justify-between">
+          <span className="text-[8px] md:text-[11px] font-black uppercase tracking-[0.4em] block mb-2 md:mb-4 opacity-70">Ocupação Real</span>
+          <div className="flex items-baseline gap-0.5 md:gap-2">
+            <span className="text-3xl md:text-6xl font-black">{analytics.occupationRate}</span>
+            <span className="text-lg md:text-3xl font-black">%</span>
           </div>
         </div>
-        <div className="card-bg p-4 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm">
-          <span className="text-[8px] md:text-[10px] font-black text-studio-orange uppercase tracking-widest block mb-2 opacity-40">Pico</span>
-          <span className="text-sm md:text-xl font-black uppercase leading-none block mt-1 text-studio-black dark:text-studio-beige truncate">{analytics.busiestDay}</span>
+        <div className="card-bg p-5 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-sm flex flex-col justify-between">
+          <span className="text-[8px] md:text-[11px] font-black text-studio-orange uppercase tracking-[0.4em] block mb-2 md:mb-4 opacity-30">Pico Semanal</span>
+          <span className="text-lg md:text-3xl font-black uppercase leading-none block text-studio-black dark:text-studio-beige truncate">{analytics.busiestDay}</span>
         </div>
       </div>
 

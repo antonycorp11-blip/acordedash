@@ -147,15 +147,15 @@ const DayDetailPanel: React.FC<Props> = ({ date, teacherId, teachers, slots, con
               className={`group flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${statusClass}`}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className={`w-9 h-9 min-w-[36px] rounded-xl flex items-center justify-center font-black text-[11px] ${timeIconClass}`}>
+                <div className={`w-12 h-12 min-w-[48px] rounded-2xl flex items-center justify-center font-black text-[13px] ${timeIconClass}`}>
                   {s.time}
                 </div>
-                <div className="flex-1 min-w-0 pr-2">
-                  <div className="font-bold text-[13px] text-studio-black dark:text-studio-beige uppercase truncate leading-tight w-full">
+                <div className="flex-1 min-w-0 pr-4">
+                  <div className="font-black text-[15px] text-studio-black dark:text-studio-beige uppercase truncate leading-tight w-full tracking-tight">
                     {s.studentName}
                   </div>
-                  <div className="text-[9px] font-black uppercase text-studio-brown/40 dark:text-studio-beige/20 tracking-wider truncate mt-0.5">
-                    {s.instrument} {s.isExperimental && <span className="text-studio-orange">• EXP</span>}
+                  <div className="text-[10px] font-black uppercase text-studio-brown/50 dark:text-studio-beige/30 tracking-widest truncate mt-1">
+                    {s.instrument} {s.isExperimental && <span className="text-studio-orange">• EXPERIMENTAL</span>}
                   </div>
                 </div>
               </div>

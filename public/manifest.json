@@ -1,20 +1,28 @@
 {
-    "name": "ConfirmAula - Studio Edition",
+    "name": "ConfirmAula Studio",
     "short_name": "ConfirmAula",
+    "description": "Gestão de agendas para Studios de Música",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#faf9f6",
+    "orientation": "portrait",
+    "background_color": "#111111",
     "theme_color": "#f97316",
     "icons": [
         {
-            "src": "/apple-touch-icon.png",
+            "src": "favicon.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any maskable"
         },
         {
-            "src": "/apple-touch-icon.png",
+            "src": "favicon.png",
             "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "apple-touch-icon.png",
+            "sizes": "180x180",
             "type": "image/png"
         }
     ]

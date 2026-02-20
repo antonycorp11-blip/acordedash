@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Expense, Teacher } from '../types';
-import { emusysService } from '../services/emusysService';
+import { dbService } from '../services/dbService';
 
 interface Props {
     expenses: Expense[];
@@ -11,18 +11,13 @@ interface Props {
 
 const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teachers }) => {
     const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
-    const [receivables, setReceivables] = useState<any[]>([]);
-    const [teacherPayments, setTeacherPayments] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showManualModal, setShowManualModal] = useState(false);
     const [manualValue, setManualValue] = useState<string>('');
 
     // Valor manual que persiste por mês
-    const [manualReceivable, setManualReceivable] = useState<number>(() => {
-        const saved = localStorage.getItem(`ca_manual_rec_${selectedMonth}`);
-        return saved ? Number(saved) : 0;
-    });
+    const [manualReceivable, setManualReceivable] = useState<number>(0);
 
     const [newExpense, setNewExpense] = useState<Partial<Expense>>({
         category: 'Estrutura',
@@ -32,33 +27,39 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
         startDate: selectedMonth
     });
 
-    const fetchData = async () => {
+    const fetchFinancialSettings = async () => {
         setLoading(true);
         try {
-            const [rec, payments] = await Promise.all([
-                emusysService.fetchReceivables(selectedMonth),
-                emusysService.fetchTeacherPayments(selectedMonth)
-            ]);
-            setReceivables(rec);
-            setTeacherPayments(payments);
+            const settings = await dbService.getFinancialSettings(selectedMonth);
+            if (settings && settings.length > 0) {
+                setManualReceivable(Number(settings[0].manual_receivable));
+            } else {
+                setManualReceivable(0);
+            }
         } catch (err) {
-            console.error(err);
+            console.error('Erro ao buscar configurações financeiras:', err);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
-        const saved = localStorage.getItem(`ca_manual_rec_${selectedMonth}`);
-        setManualReceivable(saved ? Number(saved) : 0);
+        fetchFinancialSettings();
     }, [selectedMonth]);
 
-    const handleSaveManual = () => {
+    const handleSaveManual = async () => {
         const val = Number(manualValue.replace(',', '.'));
-        setManualReceivable(val);
-        localStorage.setItem(`ca_manual_rec_${selectedMonth}`, val.toString());
-        setShowManualModal(false);
+        try {
+            setLoading(true);
+            await dbService.saveFinancialSetting(selectedMonth, val);
+            setManualReceivable(val);
+            setShowManualModal(false);
+        } catch (err) {
+            console.error('Erro ao salvar receita manual:', err);
+            alert('Erro ao salvar no servidor.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const monthlyExpenses = useMemo(() => {
@@ -77,20 +78,18 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
     }, [expenses, selectedMonth]);
 
     const totals = useMemo(() => {
-        const apiTotal = receivables.reduce((acc, curr) => acc + (curr.valor || 0), 0);
-        const totalReceivable = apiTotal > 0 ? apiTotal : manualReceivable;
-        const totalTeacherPayments = teacherPayments.reduce((acc, curr) => acc + (curr.valor_liquido || 0), 0);
+        const totalReceivable = manualReceivable;
 
         const catTotals = {
             'Estrutura': monthlyExpenses.filter(e => e.category === 'Estrutura').reduce((a, b) => a + b.amount, 0),
-            'Pessoal': monthlyExpenses.filter(e => e.category === 'Pessoal').reduce((a, b) => a + b.amount, 0) + totalTeacherPayments,
+            'Pessoal': monthlyExpenses.filter(e => e.category === 'Pessoal').reduce((a, b) => a + b.amount, 0),
             'Investimentos/Dividas': monthlyExpenses.filter(e => e.category === 'Investimentos/Dividas').reduce((a, b) => a + b.amount, 0),
             'Impostos': monthlyExpenses.filter(e => e.category === 'Impostos').reduce((a, b) => a + b.amount, 0),
         };
 
         const totalExpense = Object.values(catTotals).reduce((a, b) => a + b, 0);
         return { totalReceivable, catTotals, totalExpense };
-    }, [receivables, teacherPayments, monthlyExpenses, manualReceivable]);
+    }, [monthlyExpenses, manualReceivable]);
 
     const handleAddExpense = (closeModal: boolean = true) => {
         if (!newExpense.description || !newExpense.amount) return;
@@ -135,7 +134,7 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-black text-studio-black dark:text-studio-beige uppercase tracking-tight">Financeiro</h2>
-                    <p className="text-[9px] font-bold text-studio-brown/40 uppercase tracking-widest mt-0.5">Gestão de Receitas e Despesas</p>
+                    <p className="text-[9px] font-bold text-studio-brown/40 uppercase tracking-widest mt-0.5">Gestão de Receitas e Despesas (Modo Manual)</p>
                 </div>
 
                 <div className="flex items-center gap-3 bg-white/50 dark:bg-studio-brown/20 p-1.5 rounded-2xl border border-studio-brown/10 backdrop-blur-md w-full md:w-auto">
@@ -146,7 +145,7 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
                         className="flex-1 bg-transparent border-none outline-none font-black text-studio-orange uppercase tracking-widest text-[10px] p-2"
                     />
                     <button
-                        onClick={() => fetchData()}
+                        onClick={() => fetchFinancialSettings()}
                         className="p-2.5 bg-studio-orange text-white rounded-xl shadow-lg active:scale-90 transition-all"
                     >
                         <svg className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -154,7 +153,7 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
                 </div>
             </header>
 
-            {/* Main Stats - Compact on Mobile */}
+            {/* Main Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 <div
                     onClick={() => {
@@ -163,7 +162,7 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
                     }}
                     className="card-bg p-4 md:p-8 rounded-3xl md:rounded-[3rem] shadow-sm border-b-4 border-emerald-500 cursor-pointer active:scale-95 transition-all"
                 >
-                    <span className="text-[8px] md:text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 block">Receber</span>
+                    <span className="text-[8px] md:text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 block">Receber (Ajuste Manual)</span>
                     <div className="flex items-baseline gap-0.5">
                         <span className="text-[9px] font-bold opacity-30">R$</span>
                         <span className="text-xl md:text-4xl font-black">{Math.round(totals.totalReceivable).toLocaleString('pt-BR')}</span>
@@ -194,7 +193,7 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
                 </div>
             </div>
 
-            {/* Expense Categories - Optimized for Mobile Scrolling */}
+            {/* Expense Categories */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                 {(['Estrutura', 'Pessoal', 'Investimentos/Dividas', 'Impostos'] as const).map(cat => {
                     const catTotal = totals.catTotals[cat];
@@ -230,12 +229,6 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
                                         </div>
                                     </div>
                                 ))}
-                                {cat === 'Pessoal' && teacherPayments.length > 0 && (
-                                    <div className="bg-studio-orange/5 border border-studio-orange/10 p-3 rounded-xl flex justify-between items-center">
-                                        <span className="text-[10px] font-black text-studio-orange uppercase">Equipe (Emusys)</span>
-                                        <span className="text-[10px] font-black text-studio-orange">R$ {teacherPayments.reduce((a, b) => a + (b.valor_liquido || 0), 0).toLocaleString('pt-BR')}</span>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     );
@@ -266,10 +259,12 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
                                 onChange={e => setManualValue(e.target.value)}
                                 className="w-full bg-studio-sand/10 p-4 rounded-xl border border-studio-brown/5 font-black text-xl outline-none"
                             />
+                            <p className="text-[9px] text-studio-brown/40 uppercase font-bold text-center">Informe o valor bruto que espera receber no mês de {selectedMonth}</p>
                             <button
                                 onClick={handleSaveManual}
                                 className="w-full py-4 bg-emerald-500 text-white rounded-xl font-black uppercase text-xs"
-                            >Salvar</button>
+                                disabled={loading}
+                            >{loading ? 'Salvando...' : 'Salvar no Servidor'}</button>
                         </div>
                     </div>
                 </div>
@@ -310,6 +305,26 @@ const FinancialDashboard: React.FC<Props> = ({ expenses, onUpdateExpenses, teach
                                 onChange={e => setNewExpense({ ...newExpense, amount: Number(e.target.value) })}
                                 className="w-full bg-studio-sand/10 p-4 rounded-xl border font-bold text-xs outline-none"
                             />
+                            <div className="flex gap-2">
+                                <select
+                                    className="flex-1 bg-studio-sand/10 p-4 rounded-xl border font-bold text-xs outline-none"
+                                    value={newExpense.type}
+                                    onChange={e => setNewExpense({ ...newExpense, type: e.target.value as any })}
+                                >
+                                    <option value="fixed">Fixo Mensal</option>
+                                    <option value="single">Gasto Único</option>
+                                    <option value="installment">Parcelado</option>
+                                </select>
+                                {newExpense.type === 'installment' && (
+                                    <input
+                                        type="number"
+                                        placeholder="Parcelas"
+                                        className="w-24 bg-studio-sand/10 p-4 rounded-xl border font-bold text-xs outline-none"
+                                        value={newExpense.installments || ''}
+                                        onChange={e => setNewExpense({ ...newExpense, installments: Number(e.target.value) })}
+                                    />
+                                )}
+                            </div>
                             <button
                                 onClick={() => handleAddExpense(true)}
                                 className="w-full py-4 bg-studio-orange text-white rounded-xl font-black uppercase text-xs shadow-lg"
