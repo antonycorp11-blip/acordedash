@@ -125,14 +125,22 @@ const App: React.FC = () => {
         setIsLoaded(true);
         setIsSyncing(false);
 
+        // Criar o hash inicial para evitar o sync duplicado logo após carregar
+        const initialHash = JSON.stringify({
+          t: finalT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id)),
+          s: finalS.length,
+          c: finalConf,
+          e: finalExp.length
+        });
+        lastSyncHash.current = initialHash;
+
         // HEALING: Se os dados da nuvem estavam "sujos", limpa o banco agora
-        // Comparação robusta: sort por ID e stringify
         const simplifiedCloud = cloudT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
         const simplifiedFinal = finalT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
 
         if (cloudT.length > 0 && JSON.stringify(simplifiedCloud) !== JSON.stringify(simplifiedFinal)) {
           console.log("Healing inconsistency in Cloud DB...");
-          dbService.syncAll({ teachers: finalT, slots: finalS, confirmations: finalConf, expenses: finalExp });
+          await dbService.syncAll({ teachers: finalT, slots: finalS, confirmations: finalConf, expenses: finalExp });
         }
       } catch (err) {
         console.error("Init Error", err);
@@ -228,6 +236,9 @@ const App: React.FC = () => {
   const checkForUpdates = async () => {
     if (!isLoaded || teachers.length === 0) return;
     try {
+      const token = import.meta.env.VITE_EMUSYS_TOKEN;
+      if (!token) return; // Silently skip if no token
+
       const d = new Date();
       const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0] + ' 00:00:00';
       const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0] + ' 23:59:59';
