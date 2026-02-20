@@ -25,11 +25,15 @@ const normalizeKey = (s: string) => {
   return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 };
 
+const generateTeacherId = (name: string) => {
+  const clean = normalizeKey(name).replace(/[^A-Z0-9]/g, '');
+  return `t-${clean}`;
+};
+
 const isSimilar = (n1: string, n2: string) => {
-  const s1 = normalizeKey(n1).replace(/\s+/g, '');
-  const s2 = normalizeKey(n2).replace(/\s+/g, '');
+  const s1 = normalizeKey(n1).replace(/[^A-Z0-9]/g, '');
+  const s2 = normalizeKey(n2).replace(/[^A-Z0-9]/g, '');
   if (!s1 || !s2) return false;
-  // Match exact or one contains the other (e.g., "AQUILLES SANTOS" vs "AQUILLES ANTONY...")
   return s1 === s2 || s1.includes(s2) || s2.includes(s1);
 };
 /** ======================================================================= **/
@@ -77,39 +81,51 @@ const App: React.FC = () => {
           console.warn('Cloud load failed', err);
         }
 
-        // DEDUPLICAÇÃO E MERGE NA CARGA
+        // DEDUPLICAÇÃO E MERGE NA CARGA (HARDENED)
         const mergedT: Teacher[] = [];
-        const seenN = new Set<string>();
+        const seenNormKeys = new Set<string>();
+        const idMap = new Map<string, string>(); // Mapeia ID antigo -> ID unificado
         const allT = [...cloudT, ...(local.teachers || [])];
 
+        // 1. Primeiro pass: Definir IDs unificados baseados na regra de normalização
         allT.sort((a, b) => b.name.length - a.name.length).forEach(t => {
-          const norm = normalizeKey(t.name).replace(/\s+/g, '');
-          if (!seenN.has(norm)) {
-            mergedT.push(t);
-            seenN.add(norm);
+          const unifiedId = generateTeacherId(t.name);
+
+          if (!seenNormKeys.has(unifiedId)) {
+            mergedT.push({ id: unifiedId, name: t.name.toUpperCase() });
+            seenNormKeys.add(unifiedId);
           }
+          idMap.set(t.id, unifiedId);
         });
 
         const finalT = mergedT.sort((a, b) => a.name.localeCompare(b.name));
 
+        // 2. Remapear Slots para os IDs unificados
         const rawSlots = cloudT.length > 0 ? cloudS : (local.slots || []);
         const finalS = rawSlots.map(s => {
-          const origT = allT.find(xt => xt.id === s.teacherId);
-          const targetT = finalT.find(ft => isSimilar(ft.name, origT?.name || ""));
-          return targetT ? { ...s, teacherId: targetT.id } : s;
+          const newId = idMap.get(s.teacherId);
+          return newId ? { ...s, teacherId: newId } : s;
         });
 
         setTeachers(finalT);
         setSlots(finalS);
-        setConfirmations(cloudT.length > 0 ? cloudC : (local.confirmations || {}));
+        const finalConf = cloudT.length > 0 ? cloudC : (local.confirmations || {});
+        const finalExp = cloudT.length > 0 ? cloudE : (local.expenses || []);
+        setConfirmations(finalConf);
         setOverrides(local.overrides || {});
-        setExpenses(cloudT.length > 0 ? cloudE : (local.expenses || []));
+        setExpenses(finalExp);
 
         const savedContacted = localStorage.getItem('contacted_statuses');
         if (savedContacted) setContactedStatuses(JSON.parse(savedContacted));
 
         setIsLoaded(true);
         setIsSyncing(false);
+
+        // HEALING: Se a carga cloud veio com IDs diferentes dos unificados, força um sync Corretivo
+        if (cloudT.length > 0 && JSON.stringify(cloudT) !== JSON.stringify(finalT)) {
+          console.log("Cloud data was inconsistent. Triggering healing sync...");
+          dbService.syncAll({ teachers: finalT, slots: finalS, confirmations: finalConf, expenses: finalExp });
+        }
       } catch (err) {
         console.error("Init Error", err);
         setIsLoaded(true);
@@ -233,62 +249,31 @@ const App: React.FC = () => {
         return addToast("Nenhuma aula encontrada no período.", "error");
       }
 
-      let currentTeachers = [...teachers];
-      const teacherMap = new Map<string, string>();
+      // IDs unificados via deterministic ID (t-NORMALIZEDNAME)
+      // Como o emusysService já gera t-ANDRE e o initLoad também, o merge é trivial.
 
+      const newTeachers = [...teachers];
       emTeachers.forEach(et => {
-        const existing = currentTeachers.find(t => isSimilar(t.name, et.name));
-        if (existing) {
-          if (et.name.length > existing.name.length) {
-            const updated = currentTeachers.map(tx => tx.id === existing.id ? { ...tx, name: et.name } : tx);
-            currentTeachers = updated;
-          }
-          teacherMap.set(et.name.toUpperCase(), existing.id);
-        } else {
-          currentTeachers.push(et);
-          teacherMap.set(et.name.toUpperCase(), et.id);
+        if (!newTeachers.find(t => t.id === et.id)) {
+          newTeachers.push(et);
         }
-      });
-
-      const finalUniqueTeachers: Teacher[] = [];
-      const idRedirectMap = new Map<string, string>();
-
-      currentTeachers.sort((a, b) => b.name.length - a.name.length).forEach(t => {
-        const duplicate = finalUniqueTeachers.find(uq => isSimilar(uq.name, t.name));
-        if (duplicate) {
-          idRedirectMap.set(t.id, duplicate.id);
-        } else {
-          finalUniqueTeachers.push(t);
-        }
-      });
-
-      const adjustedEmSlots = emSlots.map(s => {
-        const emTeacher = emTeachers.find(t => t.id === s.teacherId);
-        let finalId = emTeacher ? teacherMap.get(emTeacher.name.toUpperCase()) : s.teacherId;
-        if (finalId && idRedirectMap.has(finalId)) finalId = idRedirectMap.get(finalId);
-        return { ...s, teacherId: finalId || s.teacherId };
-      });
-
-      const nonEmSlots = slots.filter(s => !s.id.startsWith('em-')).map(s => {
-        if (idRedirectMap.has(s.teacherId)) {
-          return { ...s, teacherId: idRedirectMap.get(s.teacherId)! };
-        }
-        return s;
       });
 
       const currentEmSlots = slots.filter(s => s.id.startsWith('em-'));
       const currentMap = new Map(currentEmSlots.map(s => [s.id, `${s.dayOfWeek}-${s.time}-${s.studentName}`.toUpperCase()]));
 
-      const newLessons = adjustedEmSlots.filter(s => !currentMap.has(s.id));
-      const updatedLessons = adjustedEmSlots.filter(s => {
+      const newLessons = emSlots.filter(s => !currentMap.has(s.id));
+      const updatedLessons = emSlots.filter(s => {
         const sig = `${s.dayOfWeek}-${s.time}-${s.studentName}`.toUpperCase();
         return currentMap.has(s.id) && currentMap.get(s.id) !== sig;
       });
-      const deletedCount = currentEmSlots.length - adjustedEmSlots.filter(s => currentMap.has(s.id)).length;
+      const deletedCount = currentEmSlots.length - emSlots.filter(s => currentMap.has(s.id)).length;
 
-      const finalSlots = [...nonEmSlots, ...adjustedEmSlots];
+      const nonEmSlots = slots.filter(s => !s.id.startsWith('em-'));
+      const finalSlots = [...nonEmSlots, ...emSlots];
+      const finalTeachers = newTeachers.sort((a, b) => a.name.localeCompare(b.name));
 
-      setTeachers(finalUniqueTeachers.sort((a, b) => a.name.localeCompare(b.name)));
+      setTeachers(finalTeachers);
       setSlots(finalSlots);
       setHasUpdates(false);
 
@@ -304,7 +289,7 @@ const App: React.FC = () => {
       setTimeout(async () => {
         try {
           await dbService.syncAll({
-            teachers: finalUniqueTeachers,
+            teachers: finalTeachers,
             slots: finalSlots,
             confirmations,
             expenses

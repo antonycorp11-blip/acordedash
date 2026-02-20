@@ -1,8 +1,13 @@
 
 import { Teacher, ScheduleSlot } from '../types';
 
-const EMUSYS_API_URL = '/emusys-api/v1'; // Usando o proxy do Vite
+const EMUSYS_API_URL = '/emusys-api'; // Removido v1 do proxy
 const API_TOKEN = import.meta.env.VITE_EMUSYS_TOKEN;
+
+// Helper idêntico ao App.tsx para manter IDs sincronizados entre os dois
+const normalizeKey = (s: string) => {
+    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+};
 
 export interface EmusysLesson {
     id: number;
@@ -74,8 +79,8 @@ export const emusysService = {
                 let teacher = teachersMap.get(teacherName);
 
                 if (!teacher) {
-                    // Limpeza radical para ID estável: apenas letras A-Z maiúsculas
-                    const cleanId = `t-${teacherName.replace(/[^A-Z]/g, '')}`;
+                    const cleanName = normalizeKey(teacherName);
+                    const cleanId = `t-${cleanName.replace(/[^A-Z0-9]/g, '')}`;
                     teacher = { id: cleanId, name: teacherName };
                     teachersMap.set(teacherName, teacher);
                 }
