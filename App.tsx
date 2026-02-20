@@ -125,9 +125,13 @@ const App: React.FC = () => {
         setIsLoaded(true);
         setIsSyncing(false);
 
-        // HEALING: Se a carga cloud veio com IDs diferentes dos unificados, força um sync Corretivo
-        if (cloudT.length > 0 && JSON.stringify(cloudT) !== JSON.stringify(finalT)) {
-          console.log("Cloud data was inconsistent. Triggering healing sync...");
+        // HEALING: Se os dados da nuvem estavam "sujos", limpa o banco agora
+        // Comparação robusta: sort por ID e stringify
+        const simplifiedCloud = cloudT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
+        const simplifiedFinal = finalT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
+
+        if (cloudT.length > 0 && JSON.stringify(simplifiedCloud) !== JSON.stringify(simplifiedFinal)) {
+          console.log("Healing inconsistency in Cloud DB...");
           dbService.syncAll({ teachers: finalT, slots: finalS, confirmations: finalConf, expenses: finalExp });
         }
       } catch (err) {
@@ -147,8 +151,11 @@ const App: React.FC = () => {
       const timer = setTimeout(async () => {
         try {
           // Checagem extra de redundância para evitar loops de sync
-          const { data: cloudT } = await supabase.from('teachers').select('id, name');
-          if (JSON.stringify(cloudT) === JSON.stringify(teachers)) return;
+          const cloudT = await dbService.getTeachers();
+          const simplifiedCloud = cloudT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
+          const simplifiedLocal = teachers.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
+
+          if (JSON.stringify(simplifiedCloud) === JSON.stringify(simplifiedLocal)) return;
 
           await dbService.syncAll({ teachers, slots, confirmations, expenses });
         } catch (err) {

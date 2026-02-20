@@ -25,7 +25,7 @@ export interface EmusysLesson {
 export const emusysService = {
     async fetchLessons(startDate: string, endDate: string): Promise<EmusysLesson[]> {
         if (!API_TOKEN) {
-            console.error('Emusys API Token missing');
+            console.error('ERRO: Token da API Emusys não encontrado! Certifique-se de que VITE_EMUSYS_TOKEN está configurado nas Variáveis de Ambiente do seu serviço de hospedagem (Vercel/Netlify/etc) ou no seu arquivo .env local.');
             return [];
         }
 
