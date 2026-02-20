@@ -32,10 +32,21 @@ const generateTeacherId = (name: string) => {
 };
 
 const isSimilar = (n1: string, n2: string) => {
-  const s1 = normalizeKey(n1).replace(/[^A-Z0-9]/g, '');
-  const s2 = normalizeKey(n2).replace(/[^A-Z0-9]/g, '');
-  if (!s1 || !s2) return false;
-  return s1 === s2 || s1.includes(s2) || s2.includes(s1);
+  const norm1 = normalizeKey(n1);
+  const norm2 = normalizeKey(n2);
+  if (norm1 === norm2) return true;
+
+  const words1 = norm1.split(/\s+/).filter(w => w.length > 2);
+  const words2 = norm2.split(/\s+/).filter(w => w.length > 2);
+  if (words1.length === 0 || words2.length === 0) return false;
+
+  // Se compartilham o primeiro e o último nome (ex: Aquilles ... Santos)
+  if (words1[0] === words2[0] && words1[words1.length - 1] === words2[words2.length - 1]) return true;
+
+  // Interseção de palavras (se compartilham 2 ou mais nomes principais)
+  const set2 = new Set(words2);
+  const common = words1.filter(w => set2.has(w));
+  return common.length >= 2;
 };
 /** ======================================================================= **/
 
@@ -90,12 +101,12 @@ const App: React.FC = () => {
           console.warn('Cloud load failed', err);
         }
 
-        // DEDUPLICAÇÃO E MERGE NA CARGA (v4 - TOTAL CONSISTENCY)
+        // DEDUPLICAÇÃO E MERGE NA CARGA (CLARIDADE TOTAL)
         const mergedT: Teacher[] = [];
         const idMap = new Map<string, string>();
 
-        // UNIFICAÇÃO INCLUSIVA (Nuvem + Local) - Garante que nada suma no refresh
-        const allT = [...cloudT, ...(local.teachers || [])];
+        // REGRA DE OURO: Se tem na nuvem, ignoramos COMPLETAMENTE o local.teachers para evitar "re-envenenamento"
+        const allT = cloudT.length > 0 ? cloudT : (local.teachers || []);
 
         // Ordenar por comprimento de nome descendente para pegar o nome mais completo como base
         allT.sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0)).forEach(t => {
