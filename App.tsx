@@ -86,8 +86,8 @@ const App: React.FC = () => {
         const mergedT: Teacher[] = [];
         const idMap = new Map<string, string>();
 
-        // Unificar professores de ambas as fontes
-        const allT = [...cloudT, ...(local.teachers || [])];
+        // APENAS PROFESSORES QUE VÊM DA NUVEM (API) - Removemos permanentemente o local.teachers
+        const allT = cloudT;
 
         // Ordenar por comprimento de nome descendente para pegar o nome mais completo como base
         allT.sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0)).forEach(t => {
@@ -106,11 +106,11 @@ const App: React.FC = () => {
 
         const finalT = mergedT.sort((a, b) => a.name.localeCompare(b.name));
 
-        // Mesclar Slots de ambas as fontes (Cloud + Local)
-        const allSlots = [...cloudS, ...(local.slots || [])];
+        // Slots: Prioridade total para a Nuvem + Unificação Atômica
+        const rawSlots = cloudS.length > 0 ? cloudS : (local.slots || []);
         const slotMap = new Map<string, ScheduleSlot>();
 
-        allSlots.forEach(s => {
+        rawSlots.forEach(s => {
           // Remapear para o novo ID unificado do professor
           const unifiedTeacherId = idMap.get(s.teacherId) || s.teacherId;
           const updatedSlot = { ...s, teacherId: unifiedTeacherId };
