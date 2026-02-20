@@ -243,24 +243,41 @@ const App: React.FC = () => {
           dbService.getSlots()
         ]);
 
+        let hasDiscovery = false;
+
         if (JSON.stringify(cloudT.map(t => t.id).sort()) !== JSON.stringify(teachers.map(t => t.id).sort())) {
           setTeachers(cloudT);
+          hasDiscovery = true;
         }
         if (cloudS.length !== slots.length) {
           setSlots(cloudS);
+          hasDiscovery = true;
         }
         if (JSON.stringify(cloudC) !== JSON.stringify(confirmations)) {
           setConfirmations(cloudC);
+          hasDiscovery = true;
         }
         if (JSON.stringify(cloudE) !== JSON.stringify(expenses)) {
           setExpenses(cloudE);
+          hasDiscovery = true;
+        }
+
+        // Se baixamos algo novo, atualizamos o hash para não re-sincronizar imediatamente
+        if (hasDiscovery) {
+          const newHash = JSON.stringify({
+            t: cloudT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id)),
+            s: cloudS.length,
+            c: cloudC,
+            e: cloudE.length
+          });
+          lastSyncHash.current = newHash;
         }
       } catch (err) {
         console.error("Polling failed", err);
       }
     };
 
-    const interval = setInterval(poll, 30000);
+    const interval = setInterval(poll, 15000); // 15 segundos para ser mais responsivo
     return () => clearInterval(interval);
   }, [isLoaded, teachers, slots, confirmations, expenses]);
 
