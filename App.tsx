@@ -82,39 +82,54 @@ const App: React.FC = () => {
           console.warn('Cloud load failed', err);
         }
 
-        // DEDUPLICAÇÃO E MERGE NA CARGA (HARDENED v3 - SIMILARITY FIRST)
+        // DEDUPLICAÇÃO E MERGE NA CARGA (v4 - TOTAL CONSISTENCY)
         const mergedT: Teacher[] = [];
         const idMap = new Map<string, string>();
+
+        // Unificar professores de ambas as fontes
         const allT = [...cloudT, ...(local.teachers || [])];
 
-        // Ordenar por comprimento de nome descendente garante que o nome mais completo seja a base do ID
-        allT.sort((a, b) => b.name.length - a.name.length).forEach(t => {
+        // Ordenar por comprimento de nome descendente para pegar o nome mais completo como base
+        allT.sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0)).forEach(t => {
+          if (!t.name) return;
           const normName = normalizeKey(t.name);
-          // Busca um já processado que seja SIMILAR
           const similar = mergedT.find(m => isSimilar(m.name, normName));
 
           if (similar) {
             idMap.set(t.id, similar.id);
           } else {
             const unifiedId = generateTeacherId(normName);
-            mergedT.push({ id: unifiedId, name: normName });
+            mergedT.push({ id: unifiedId, name: t.name.toUpperCase().trim() });
             idMap.set(t.id, unifiedId);
           }
         });
 
         const finalT = mergedT.sort((a, b) => a.name.localeCompare(b.name));
 
-        // 2. Remapear Slots para os IDs unificados
-        const rawSlots = cloudT.length > 0 ? cloudS : (local.slots || []);
-        const finalS = rawSlots.map(s => {
-          const newId = idMap.get(s.teacherId);
-          return newId ? { ...s, teacherId: newId } : s;
+        // Mesclar Slots de ambas as fontes (Cloud + Local)
+        const allSlots = [...cloudS, ...(local.slots || [])];
+        const slotMap = new Map<string, ScheduleSlot>();
+
+        allSlots.forEach(s => {
+          // Remapear para o novo ID unificado do professor
+          const unifiedTeacherId = idMap.get(s.teacherId) || s.teacherId;
+          const updatedSlot = { ...s, teacherId: unifiedTeacherId };
+
+          // Chave única para evitar duplicidades de slots idênticos
+          const slotKey = `${unifiedTeacherId}-${s.dayOfWeek}-${s.time}-${s.studentName}`.toUpperCase();
+          if (!slotMap.has(slotKey)) {
+            slotMap.set(slotKey, updatedSlot);
+          }
         });
+
+        const finalS = Array.from(slotMap.values());
+
+        // Mesclar Confirmações
+        const finalConf = { ...(local.confirmations || {}), ...cloudC };
+        const finalExp = cloudE.length > 0 ? cloudE : (local.expenses || []);
 
         setTeachers(finalT);
         setSlots(finalS);
-        const finalConf = cloudT.length > 0 ? cloudC : (local.confirmations || {});
-        const finalExp = cloudT.length > 0 ? cloudE : (local.expenses || []);
         setConfirmations(finalConf);
         setOverrides(local.overrides || {});
         setExpenses(finalExp);
