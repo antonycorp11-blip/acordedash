@@ -12,6 +12,7 @@ import TeacherManager from './components/TeacherManager';
 import ScheduleManager from './components/ScheduleManager';
 import { emusysService } from './services/emusysService';
 import { dbService } from './services/dbService';
+import { supabase } from './lib/supabase';
 
 /** 
  * ============================================================================
@@ -81,21 +82,24 @@ const App: React.FC = () => {
           console.warn('Cloud load failed', err);
         }
 
-        // DEDUPLICAÇÃO E MERGE NA CARGA (HARDENED)
+        // DEDUPLICAÇÃO E MERGE NA CARGA (HARDENED v3 - SIMILARITY FIRST)
         const mergedT: Teacher[] = [];
-        const seenNormKeys = new Set<string>();
-        const idMap = new Map<string, string>(); // Mapeia ID antigo -> ID unificado
+        const idMap = new Map<string, string>();
         const allT = [...cloudT, ...(local.teachers || [])];
 
-        // 1. Primeiro pass: Definir IDs unificados baseados na regra de normalização
+        // Ordenar por comprimento de nome descendente garante que o nome mais completo seja a base do ID
         allT.sort((a, b) => b.name.length - a.name.length).forEach(t => {
-          const unifiedId = generateTeacherId(t.name);
+          const normName = normalizeKey(t.name);
+          // Busca um já processado que seja SIMILAR
+          const similar = mergedT.find(m => isSimilar(m.name, normName));
 
-          if (!seenNormKeys.has(unifiedId)) {
-            mergedT.push({ id: unifiedId, name: t.name.toUpperCase() });
-            seenNormKeys.add(unifiedId);
+          if (similar) {
+            idMap.set(t.id, similar.id);
+          } else {
+            const unifiedId = generateTeacherId(normName);
+            mergedT.push({ id: unifiedId, name: normName });
+            idMap.set(t.id, unifiedId);
           }
-          idMap.set(t.id, unifiedId);
         });
 
         const finalT = mergedT.sort((a, b) => a.name.localeCompare(b.name));
@@ -139,19 +143,18 @@ const App: React.FC = () => {
     if (isLoaded) {
       saveData(teachers, slots, confirmations, overrides, expenses);
 
-      // Debounced Cloud Sync
+      // Debounced Cloud Sync - Apenas se houver algo para salvar
       const timer = setTimeout(async () => {
         try {
-          await dbService.syncAll({
-            teachers,
-            slots,
-            confirmations,
-            expenses
-          });
+          // Checagem extra de redundância para evitar loops de sync
+          const { data: cloudT } = await supabase.from('teachers').select('id, name');
+          if (JSON.stringify(cloudT) === JSON.stringify(teachers)) return;
+
+          await dbService.syncAll({ teachers, slots, confirmations, expenses });
         } catch (err) {
           console.error("Auto cloud sync failed", err);
         }
-      }, 3000); // 3 second debounce to avoid slamming DB
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [teachers, slots, confirmations, overrides, expenses, isLoaded]);
