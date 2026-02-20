@@ -143,21 +143,27 @@ const App: React.FC = () => {
     initLoad();
   }, []);
 
+  // Ref para evitar loops de sincronização com hashes
+  const lastSyncHash = React.useRef("");
+
   useEffect(() => {
     if (isLoaded) {
       saveData(teachers, slots, confirmations, overrides, expenses);
 
-      // Debounced Cloud Sync - Apenas se houver algo para salvar
+      // Criar um hash do estado atual para comparação
+      const currentHash = JSON.stringify({
+        t: teachers.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id)),
+        s: slots.length,
+        c: confirmations,
+        e: expenses.length
+      });
+
+      if (currentHash === lastSyncHash.current) return;
+
       const timer = setTimeout(async () => {
         try {
-          // Checagem extra de redundância para evitar loops de sync
-          const cloudT = await dbService.getTeachers();
-          const simplifiedCloud = cloudT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
-          const simplifiedLocal = teachers.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
-
-          if (JSON.stringify(simplifiedCloud) === JSON.stringify(simplifiedLocal)) return;
-
           await dbService.syncAll({ teachers, slots, confirmations, expenses });
+          lastSyncHash.current = currentHash;
         } catch (err) {
           console.error("Auto cloud sync failed", err);
         }
@@ -172,12 +178,19 @@ const App: React.FC = () => {
 
     const poll = async () => {
       try {
-        const [cloudC, cloudE] = await Promise.all([
+        const [cloudT, cloudC, cloudE, cloudS] = await Promise.all([
+          dbService.getTeachers(),
           dbService.getConfirmations(),
-          dbService.getExpenses()
+          dbService.getExpenses(),
+          dbService.getSlots()
         ]);
 
-        // Only update if there's a difference to avoid flash/re-render
+        if (JSON.stringify(cloudT.map(t => t.id).sort()) !== JSON.stringify(teachers.map(t => t.id).sort())) {
+          setTeachers(cloudT);
+        }
+        if (cloudS.length !== slots.length) {
+          setSlots(cloudS);
+        }
         if (JSON.stringify(cloudC) !== JSON.stringify(confirmations)) {
           setConfirmations(cloudC);
         }
@@ -189,9 +202,9 @@ const App: React.FC = () => {
       }
     };
 
-    const interval = setInterval(poll, 20000); // Poll every 20 seconds
+    const interval = setInterval(poll, 30000);
     return () => clearInterval(interval);
-  }, [isLoaded, confirmations, expenses]);
+  }, [isLoaded, teachers, slots, confirmations, expenses]);
 
   useEffect(() => {
     localStorage.setItem('dark', String(darkMode));
