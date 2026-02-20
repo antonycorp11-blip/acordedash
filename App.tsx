@@ -158,13 +158,28 @@ const App: React.FC = () => {
         });
         lastSyncHash.current = initialHash;
 
-        // HEALING: Se os dados da nuvem estavam "sujos", limpa o banco agora
+        // HEALING: Se a nuvem tem IDs duplicados que foram unificados aqui, deleta do Banco
+        const cloudIds = cloudT.map(t => t.id);
+        const finalIds = finalT.map(t => t.id);
+        const idsToDelete = cloudIds.filter(id => !finalIds.includes(id));
         const simplifiedCloud = cloudT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
         const simplifiedFinal = finalT.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.id.localeCompare(b.id));
 
-        if (cloudT.length > 0 && JSON.stringify(simplifiedCloud) !== JSON.stringify(simplifiedFinal)) {
-          console.log("Healing inconsistency in Cloud DB...");
-          await dbService.syncAll({ teachers: finalT, slots: finalS, confirmations: finalConf, expenses: finalExp });
+        if (idsToDelete.length > 0 || (cloudT.length > 0 && JSON.stringify(simplifiedCloud) !== JSON.stringify(simplifiedFinal))) {
+          console.log("Healing inconsistency in Cloud DB...", { delete: idsToDelete.length, update: true });
+
+          // 1. Deletar os obsoletos
+          if (idsToDelete.length > 0) {
+            await dbService.deleteTeachers(idsToDelete);
+          }
+
+          // 2. Forçar sync dos unificados e seus slots (remapeados)
+          await dbService.syncAll({
+            teachers: finalT,
+            slots: finalS,
+            confirmations: finalConf,
+            expenses: finalExp
+          });
         }
       } catch (err) {
         console.error("Init Error", err);
