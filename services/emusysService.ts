@@ -1,7 +1,7 @@
 
 import { Teacher, ScheduleSlot } from '../types';
 
-const EMUSYS_API_URL = '/emusys-api'; // Removido v1 do proxy
+const EMUSYS_API_URL = '/emusys-api/v1'; // Restaurado v1 pois o Emusys exige versão no path
 const API_TOKEN = import.meta.env.VITE_EMUSYS_TOKEN;
 
 // Helper idêntico ao App.tsx para manter IDs sincronizados entre os dois
