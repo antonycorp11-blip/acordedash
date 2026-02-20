@@ -107,16 +107,17 @@ const App: React.FC = () => {
         const finalT = mergedT.sort((a, b) => a.name.localeCompare(b.name));
 
         // Slots: MESCLAGEM INCLUSIVA (Não apaga o celular se a nuvem estiver incompleta)
-        const rawSlots = [...cloudS, ...(local.slots || [])];
+        const allSlots = [...cloudS, ...(local.slots || [])];
         const slotMap = new Map<string, ScheduleSlot>();
 
-        rawSlots.forEach(s => {
-          // Remapear para o novo ID unificado do professor
+        allSlots.forEach(s => {
+          if (!s.teacherId) return;
           const unifiedTeacherId = idMap.get(s.teacherId) || s.teacherId;
           const updatedSlot = { ...s, teacherId: unifiedTeacherId };
 
-          // Chave única para evitar duplicidades de slots idênticos
-          const slotKey = `${unifiedTeacherId}-${s.dayOfWeek}-${s.time}-${s.studentName}`.toUpperCase();
+          // Chave única atômica (incluindo DATA se houver) para evitar desaparecimento de aulas
+          const slotKey = `${unifiedTeacherId}-${s.dayOfWeek}-${s.time}-${s.studentName.toUpperCase()}-${s.date || 'RECURRING'}`;
+
           if (!slotMap.has(slotKey)) {
             slotMap.set(slotKey, updatedSlot);
           }

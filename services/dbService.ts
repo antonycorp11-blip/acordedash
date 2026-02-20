@@ -135,8 +135,13 @@ export const dbService = {
             }
 
             console.log('Supabase Sync Complete!');
-        } catch (err) {
-            console.error('Supabase Sync Failed:', err);
+        } catch (err: any) {
+            console.error('Supabase Sync Failed!', {
+                message: err.message,
+                details: err.details,
+                hint: err.hint,
+                code: err.code
+            });
             throw err;
         }
     }
