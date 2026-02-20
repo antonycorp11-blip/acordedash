@@ -65,6 +65,14 @@ const App: React.FC = () => {
 
         const hasLocalData = local.teachers && local.teachers.length > 0;
 
+        // MIGRATION: Se houver dados locais com IDs antigos (não t-), limpa para forçar renascimento
+        const hasLegacyTeachers = local.teachers?.some((t: any) => !t.id.startsWith('t-'));
+        if (hasLegacyTeachers) {
+          console.log("Legacy teachers detected. Purging local cache for clean sync...");
+          localStorage.removeItem('ca_t');
+          local.teachers = [];
+        }
+
         let cloudT: Teacher[] = [];
         let cloudS: ScheduleSlot[] = [];
         let cloudC: Confirmations = {};
@@ -395,7 +403,7 @@ const App: React.FC = () => {
         hasUpdates={hasUpdates}
       />
 
-      <main className="flex-1 overflow-y-auto no-scrollbar bg-studio-beige/95 dark:bg-studio-black p-4 md:p-10">
+      <main className="flex-1 overflow-y-auto no-scrollbar bg-studio-beige/95 dark:bg-studio-black p-4 md:p-10 pb-32 md:pb-10">
         <div className="max-w-[1700px] mx-auto space-y-10">
 
           {/* Header & Filter Bar */}

@@ -62,6 +62,9 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
 
         {/* Mobile Tools */}
         <div className="flex md:hidden items-center gap-3 pl-3 border-l border-white/10 ml-1 h-10">
+          <button onClick={() => setDarkMode(!darkMode)} className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-xl">
+            {darkMode ? '☀️' : '🌙'}
+          </button>
           <button onClick={onSync} className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-studio-orange text-white shadow-lg active:scale-90 transition-transform">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
           </button>
