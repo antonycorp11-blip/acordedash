@@ -38,13 +38,24 @@ const MonthlyCalendar: React.FC<Props> = ({ selectedDate, onSelectDate, slots, t
     const dateStr = date.toISOString().split('T')[0];
     const dow = date.getDay();
 
-    return slots.filter(s => {
+    const raw = slots.filter(s => {
       const matchesTeacher = teacherId ? s.teacherId === teacherId : true;
       if (!matchesTeacher) return false;
 
       if (s.date) return s.date === dateStr;
       return s.dayOfWeek === dow;
-    }).length;
+    });
+
+    const dedup = new Map<string, any>();
+    raw.forEach(s => {
+      const key = `${s.time}-${s.studentName}-${s.teacherId}-${s.instrument}`.toUpperCase();
+      const existing = dedup.get(key);
+      if (!existing || (!existing.date && s.date)) {
+        dedup.set(key, s);
+      }
+    });
+
+    return dedup.size;
   };
 
   const changeMonth = (offset: number) => {

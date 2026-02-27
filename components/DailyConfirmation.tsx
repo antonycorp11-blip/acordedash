@@ -38,8 +38,20 @@ const DailyConfirmation: React.FC<Props> = ({
     const date = new Date(y, m - 1, d);
     const dow = date.getDay();
     const daily = overrides[selDate] || { hidden: [] };
-    const filtered = slots.filter(s => s.teacherId === selTeacherId && s.dayOfWeek === dow && !daily.hidden.includes(s.id));
-    return { currentSlots: filtered.sort((a, b) => a.time.localeCompare(b.time)), dowIdx: dow };
+    const raw = slots.filter(s => s.teacherId === selTeacherId && s.dayOfWeek === dow && !daily.hidden.includes(s.id));
+
+    // Deduplicação Atômica
+    const dedup = new Map<string, any>();
+    raw.forEach(s => {
+      const key = `${s.time}-${s.studentName}-${s.teacherId}-${s.instrument}`.toUpperCase();
+      const existing = dedup.get(key);
+      if (!existing || (!existing.date && s.date)) {
+        dedup.set(key, s);
+      }
+    });
+
+    const filtered = Array.from(dedup.values()).sort((a, b) => a.time.localeCompare(b.time));
+    return { currentSlots: filtered, dowIdx: dow };
   }, [slots, selTeacherId, selDate, overrides]);
 
   const confIds = confirmations[selDate] || [];
@@ -104,8 +116,8 @@ const DailyConfirmation: React.FC<Props> = ({
               key={t.id}
               onClick={() => setSelTeacherId(t.id)}
               className={`px-8 py-4 rounded-[2rem] text-[12px] font-black uppercase transition-all border whitespace-nowrap shadow-sm ${selTeacherId === t.id
-                  ? 'bg-studio-black text-white border-studio-black dark:bg-studio-orange dark:border-studio-orange'
-                  : 'card-bg border-studio-sand dark:border-studio-brown/20 text-studio-brown/60 dark:text-studio-beige/40'
+                ? 'bg-studio-black text-white border-studio-black dark:bg-studio-orange dark:border-studio-orange'
+                : 'card-bg border-studio-sand dark:border-studio-brown/20 text-studio-brown/60 dark:text-studio-beige/40'
                 }`}
             >
               {t.name}
@@ -140,8 +152,8 @@ const DailyConfirmation: React.FC<Props> = ({
               key={s.id}
               onClick={() => onToggle(selDate, s.id)}
               className={`flex items-center justify-between p-6 rounded-[2.5rem] border transition-all cursor-pointer active:scale-95 group relative overflow-hidden ${isC
-                  ? 'bg-studio-orange text-white border-studio-orange shadow-xl shadow-studio-orange/20'
-                  : 'card-bg border-studio-sand dark:border-studio-brown/20 hover:border-studio-orange/30'
+                ? 'bg-studio-orange text-white border-studio-orange shadow-xl shadow-studio-orange/20'
+                : 'card-bg border-studio-sand dark:border-studio-brown/20 hover:border-studio-orange/30'
                 }`}
             >
               <div className="flex items-center gap-5 z-10 flex-1 min-w-0">

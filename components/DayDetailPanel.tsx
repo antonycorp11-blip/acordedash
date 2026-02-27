@@ -25,7 +25,7 @@ const DayDetailPanel: React.FC<Props> = ({ date, teacherId, teachers, slots, con
     const dow = dateObj.getDay();
     const t = teachers.find(x => x.id === teacherId);
 
-    const filtered = slots
+    const rawFiltered = slots
       .filter(s => {
         const matchesTeacher = teacherId ? s.teacherId === teacherId : true;
         if (!matchesTeacher) return false;
@@ -33,11 +33,26 @@ const DayDetailPanel: React.FC<Props> = ({ date, teacherId, teachers, slots, con
         // Se a aula tem uma data específica, usa ela. Caso contrário, usa o dia da semana.
         if (s.date) return s.date === date;
         return s.dayOfWeek === dow;
-      })
+      });
+
+    // Deduplicação Atômica: Se o mesmo aluno tem a mesma aula no mesmo horário, 
+    // priorizamos a que tem data específica (One-time/Override) sobre a recorrente.
+    const dedupMap = new Map<string, ScheduleSlot>();
+    rawFiltered.forEach(s => {
+      const key = `${s.time}-${s.studentName}-${s.teacherId}-${s.instrument}`.toUpperCase();
+      const existing = dedupMap.get(key);
+
+      // Regra de Ouro: Preferir slots com DATE (específicos) sobre os recorrentes
+      if (!existing || (!existing.date && s.date)) {
+        dedupMap.set(key, s);
+      }
+    });
+
+    const finalFiltered = Array.from(dedupMap.values())
       .sort((a, b) => a.time.localeCompare(b.time));
 
     return {
-      daySlots: filtered,
+      daySlots: finalFiltered,
       dowName: DAYS_OF_WEEK[dow],
       teacherName: t?.name || 'Todos os Docentes'
     };

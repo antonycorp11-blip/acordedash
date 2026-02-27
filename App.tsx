@@ -424,13 +424,23 @@ const App: React.FC = () => {
 
   const todayCount = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
-    const dow = new Date().getDay();
-    return slots.filter(s => {
+    const raw = slots.filter(s => {
       const matchesTeacher = selectedTeacherId ? s.teacherId === selectedTeacherId : true;
       if (!matchesTeacher) return false;
       if (s.date) return s.date === todayStr;
       return s.dayOfWeek === dow;
-    }).length;
+    });
+
+    const dedup = new Map<string, any>();
+    raw.forEach(s => {
+      const key = `${s.time}-${s.studentName}-${s.teacherId}-${s.instrument}`.toUpperCase();
+      const existing = dedup.get(key);
+      if (!existing || (!existing.date && s.date)) {
+        dedup.set(key, s);
+      }
+    });
+
+    return dedup.size;
   }, [slots, selectedTeacherId]);
 
   return (
