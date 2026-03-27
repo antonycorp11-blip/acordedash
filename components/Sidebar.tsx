@@ -1,5 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { notificationService } from '../services/notificationService';
+import PushSettingsModal from './PushSettingsModal';
 
 interface Props {
   currentView: string;
@@ -13,6 +15,8 @@ interface Props {
 }
 
 const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode, onImport, onSync, onReset, hasUpdates }) => {
+  const [showPushModal, setShowPushModal] = useState(false);
+  
   const iconColor = 'text-white/60';
   const inactiveClass = `${iconColor} hover:text-studio-orange hover:bg-white/10`;
   const activeClass = 'bg-studio-orange text-white shadow-xl scale-110 opacity-100';
@@ -94,6 +98,14 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
           <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" /></svg>
         </button>
 
+        <button
+          onClick={() => setShowPushModal(true)}
+          className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 text-white/40 hover:bg-emerald-500 hover:text-white transition-all"
+          title="Ativar Alertas no Celular"
+        >
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+        </button>
+
         <div className="pt-4 mt-2 border-t border-white/5 flex flex-col gap-4 items-center">
           <button onClick={() => setDarkMode(!darkMode)} className="text-2xl hover:scale-110 p-3 bg-white/5 rounded-xl">
             {darkMode ? '☀️' : '🌙'}
@@ -114,6 +126,13 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
         </button>
         <button
+          onClick={() => setShowPushModal(true)}
+          className="w-10 h-10 flex items-center justify-center bg-white/10 text-white/50 rounded-full active:bg-emerald-500 active:text-white transition-all shadow-lg border border-white/5"
+          title="Ativar Alertas"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+        </button>
+        <button
           onClick={onReset}
           className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500/30 rounded-full active:bg-red-500 active:text-white transition-all shadow-lg border border-red-500/5 backdrop-blur-sm"
           title="Resetar"
@@ -121,6 +140,7 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
         </button>
       </div>
+      {showPushModal && <PushSettingsModal onClose={() => setShowPushModal(false)} />}
     </aside>
   );
 };

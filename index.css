@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Responsive Overrides */
 @media (max-width: 768px) {
   .glass-panel {

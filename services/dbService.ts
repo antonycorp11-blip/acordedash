@@ -150,5 +150,31 @@ export const dbService = {
         if (ids.length === 0) return;
         const { error } = await supabase.from('teachers').delete().in('id', ids);
         if (error) throw error;
+    },
+
+    // Notificações - RLS do Banco precisa estar false pra insert (ou dar anon key roles)
+    async savePushSubscription(alias: string, subscription: string) {
+        const { error } = await supabase.from('push_subscriptions').upsert({
+            subscription_id: alias,
+            alias: alias,
+            subscription: subscription,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'subscription_id' });
+        if (error) throw error;
+    },
+
+    async getPushSettings(): Promise<string[]> {
+        const { data, error } = await supabase.from('studio_settings').select('setting_value').eq('setting_key', 'push_hours').single();
+        if (error || !data) return ["09:00", "11:00", "14:00", "16:00"];
+        return data.setting_value as string[];
+    },
+
+    async savePushSettings(hours: string[]) {
+        const { error } = await supabase.from('studio_settings').upsert({
+            setting_key: 'push_hours',
+            setting_value: hours,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'setting_key' });
+        if (error) throw error;
     }
 };

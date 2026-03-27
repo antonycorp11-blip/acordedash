@@ -55,3 +55,12 @@ export interface FinancialData {
   }[];
   expenses: Expense[];
 }
+
+export interface NotificationLog {
+  id: string;
+  type: 'student_reminder' | 'teacher_reminder' | 'system';
+  targetContact: string;
+  message: string;
+  status: 'pending' | 'sent' | 'failed';
+  createdAt: number;
+}

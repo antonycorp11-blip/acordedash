@@ -13,26 +13,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#111111">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            studio: {
-              orange: '#f97316',
-              black: '#111111',
-              brown: '#4a3728',
-              beige: '#faf9f6',
-              sand: '#f2ece0',
-              cream: '#ffffff',
-            }
-          }
-        }
-      }
-    }
-  </script>
+
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <style>
@@ -107,17 +88,19 @@
       animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
   </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "xlsx": "https://esm.sh/xlsx@0.18.5"
-  }
-}
-</script>
+
   <link rel="stylesheet" href="/index.css">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').then(function(reg) {
+          console.log('Push Service Worker Registered!', reg.scope);
+        }).catch(function(err) {
+          console.error('Service Worker falhou:', err);
+        });
+      });
+    }
+  </script>
 </head>
 
 <body>

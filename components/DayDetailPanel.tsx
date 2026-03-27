@@ -198,13 +198,26 @@ const DayDetailPanel: React.FC<Props> = ({ date, teacherId, teachers, slots, con
       </div>
 
       {daySlots.length > 0 && (
-        <div className="p-5 border-t border-studio-brown/5 card-bg mb-20 md:mb-0">
+        <div className="p-5 border-t border-studio-brown/5 card-bg mb-20 md:mb-0 space-y-3">
           <button
             onClick={handleTeacherMsg}
             className="w-full py-4 bg-studio-orange text-white rounded-2xl font-black text-xs uppercase tracking-[0.15em] shadow-xl shadow-studio-orange/20 active:scale-95 transition-all flex items-center justify-center gap-3"
           >
             ENVIAR RELATÓRIO
             <span className="bg-white/20 px-2 py-1 rounded-lg text-[10px]">{confirmedIds.length}</span>
+          </button>
+          
+          <button
+            onClick={() => {
+              const unconfirmed = daySlots.filter(s => !confirmedIds.includes(s.id));
+              if(unconfirmed.length === 0) return onToast("Todas as aulas já foram confirmadas!", "success");
+              onToast(`Preparando disparo para ${unconfirmed.length} alunos (Em breve)`, "info");
+              // notificationService.dispatchMass(...) preparo do backend no futuro
+            }}
+            className="w-full py-3 bg-studio-sand/50 dark:bg-studio-brown/10 border border-studio-orange/20 text-studio-orange rounded-2xl font-black text-xs uppercase tracking-[0.15em] hover:bg-studio-orange hover:text-white transition-all flex items-center justify-center gap-3"
+          >
+            Notificar Pendentes
+            <div className="w-2 h-2 rounded-full bg-studio-orange animate-pulse"></div>
           </button>
         </div>
       )}
