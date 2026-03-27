@@ -65,13 +65,13 @@ const PushSettingsModal: React.FC<Props> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[600] flex items-center justify-center bg-studio-black/90 backdrop-blur-md p-4">
-      <div className="card-bg rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-studio-brown/10 animate-slide">
-        <div className="p-5 border-b border-studio-brown/5 flex justify-between items-center bg-studio-orange text-white">
+      <div className="card-bg rounded-3xl w-full max-w-sm flex flex-col shadow-2xl border border-studio-brown/10 animate-slide max-h-[85vh]">
+        <div className="p-5 border-b border-studio-brown/5 flex justify-between items-center bg-studio-orange text-white shrink-0">
           <span className="text-xs font-black uppercase tracking-widest">Painel de Alertas Automáticos</span>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-all font-bold text-xl">&times;</button>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto no-scrollbar pb-10">
           <p className="text-[11px] font-bold text-studio-brown/60 dark:text-studio-beige/60 uppercase tracking-widest leading-relaxed">
             Configure seu perfil de disparos e os relógios (se for plano ilimitado):
           </p>
