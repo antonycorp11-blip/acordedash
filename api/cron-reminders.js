@@ -28,9 +28,15 @@ export default async function handler(req, res) {
       const pushHours = settings?.setting_value || ["09:00","11:00","14:00","16:00"];
       
       // Checar se a hora atual (Em Cuiabá, UTC-4) bate com as regras
+      // Checar se a hora atual (Em Cuiabá, UTC-4) bate com as regras
       const nowMT = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Cuiaba" }));
       const currentHourStr = nowMT.getHours().toString().padStart(2, '0') + ":00";
       
+      // Trava Anti-Spam de 15 minutos do usuário 
+      if (nowMT.getMinutes() > 5) {
+        return res.status(200).json({ success: true, msg: `Ignorado. Minuto cortado (${nowMT.getMinutes()}). Notificamos apenas na hora cheia.` });
+      }
+
       if (!pushHours.includes(currentHourStr)) {
          return res.status(200).json({ success: true, msg: `Ignorado. Hora atual MT (${currentHourStr}) não está configurada nos horários de disparo.` });
       }
