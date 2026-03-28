@@ -64,14 +64,14 @@ const PushSettingsModal: React.FC<Props> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[600] flex items-center justify-center bg-studio-black/90 backdrop-blur-md p-4">
-      <div className="card-bg rounded-3xl w-full max-w-sm flex flex-col shadow-2xl border border-studio-brown/10 animate-slide max-h-[85vh]">
+    <div className="fixed inset-0 z-[600] flex items-center justify-center bg-studio-black/95 backdrop-blur-md p-4">
+      <div className="card-bg rounded-3xl w-full max-w-sm flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-studio-brown/10 animate-pop-in max-h-[85vh] my-auto">
         <div className="p-5 border-b border-studio-brown/5 flex justify-between items-center bg-studio-orange text-white shrink-0">
-          <span className="text-xs font-black uppercase tracking-widest">Painel de Alertas Automáticos</span>
+          <span className="text-xs font-black uppercase tracking-widest">Configuração de Alertas</span>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-all font-bold text-xl">&times;</button>
         </div>
         
-        <div className="p-6 space-y-6 overflow-y-auto no-scrollbar pb-10">
+        <div className="p-6 space-y-6 overflow-y-auto no-scrollbar pb-6 flex-1">
           <p className="text-[11px] font-bold text-studio-brown/60 dark:text-studio-beige/60 uppercase tracking-widest leading-relaxed">
             Configure seu perfil de disparos e os relógios (se for plano ilimitado):
           </p>
@@ -120,10 +120,14 @@ const PushSettingsModal: React.FC<Props> = ({ onClose }) => {
           </div>
 
           {alertMsg && (
-            <div className="p-4 bg-studio-sand/50 dark:bg-studio-brown/30 rounded-xl text-xs font-bold text-center">
+            <div className="p-4 bg-studio-sand/50 dark:bg-studio-brown/30 rounded-xl text-[10px] font-bold text-center border-l-4 border-studio-orange">
               {alertMsg}
             </div>
           )}
+
+          <button onClick={onClose} className="w-full py-4 mt-4 bg-studio-black dark:bg-white text-white dark:text-studio-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all">
+             Concluir e Fechar
+          </button>
         </div>
       </div>
     </div>

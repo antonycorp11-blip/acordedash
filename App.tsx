@@ -354,25 +354,45 @@ const App: React.FC = () => {
       // Como o emusysService já gera t-ANDRE e o initLoad também, o merge é trivial.
 
       const newTeachers = [...teachers];
+      const idRemap = new Map<string, string>(); // Mapeia id antigo do Emusys pro Id Oficial
+
       emTeachers.forEach(et => {
-        if (!newTeachers.find(t => t.id === et.id)) {
+        const etNorm = normalizeKey(et.name);
+        // Tenta achar professor que possui mesmo ID ou nome similar
+        let existing = newTeachers.find(t => t.id === et.id || isSimilar(t.name, etNorm));
+        
+        if (existing) {
+          idRemap.set(et.id, existing.id); // Alunos vindos pro professor novo vão pro antigo
+        } else {
           newTeachers.push(et);
+          idRemap.set(et.id, et.id);
         }
       });
+
+      // Remapear as aulas pros IDs verdadeiros unificados
+      const remappedEmSlots = emSlots.map(s => ({
+        ...s,
+        teacherId: idRemap.get(s.teacherId) || s.teacherId
+      }));
 
       const currentEmSlots = slots.filter(s => s.id.startsWith('em-'));
       const currentMap = new Map(currentEmSlots.map(s => [s.id, `${s.dayOfWeek}-${s.time}-${s.studentName}`.toUpperCase()]));
 
-      const newLessons = emSlots.filter(s => !currentMap.has(s.id));
-      const updatedLessons = emSlots.filter(s => {
+      const newLessons = remappedEmSlots.filter(s => !currentMap.has(s.id));
+      const updatedLessons = remappedEmSlots.filter(s => {
         const sig = `${s.dayOfWeek}-${s.time}-${s.studentName}`.toUpperCase();
         return currentMap.has(s.id) && currentMap.get(s.id) !== sig;
       });
-      const deletedCount = currentEmSlots.length - emSlots.filter(s => currentMap.has(s.id)).length;
+      const deletedCount = currentEmSlots.length - remappedEmSlots.filter(s => currentMap.has(s.id)).length;
 
       const nonEmSlots = slots.filter(s => !s.id.startsWith('em-'));
-      const finalSlots = [...nonEmSlots, ...emSlots];
-      const finalTeachers = newTeachers.sort((a, b) => a.name.localeCompare(b.name));
+      const finalSlots = [...nonEmSlots, ...remappedEmSlots];
+      
+      // DELETER PROFESSORES VAZIOS (Que não tem nenhuma aula na Grade ou Manual)
+      const teachersWithSlots = new Set(finalSlots.map(s => s.teacherId));
+      const cleanedTeachers = newTeachers.filter(t => teachersWithSlots.has(t.id));
+      
+      const finalTeachers = cleanedTeachers.sort((a, b) => a.name.localeCompare(b.name));
 
       setTeachers(finalTeachers);
       setSlots(finalSlots);
@@ -423,7 +443,10 @@ const App: React.FC = () => {
   };
 
   const todayCount = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayObj = new Date();
+    const todayStr = todayObj.toISOString().split('T')[0];
+    const dow = todayObj.getDay();
+    
     const raw = slots.filter(s => {
       const matchesTeacher = selectedTeacherId ? s.teacherId === selectedTeacherId : true;
       if (!matchesTeacher) return false;

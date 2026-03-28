@@ -73,12 +73,15 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
         </button>
 
         {/* Mobile Tools */}
-        <div className="flex md:hidden items-center gap-3 pl-3 border-l border-white/10 ml-1 h-10">
-          <button onClick={() => setDarkMode(!darkMode)} className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-xl">
-            {darkMode ? '☀️' : '🌙'}
+        <div className="flex md:hidden items-center gap-2 pl-2 border-l border-white/10 ml-1 h-10">
+          <button onClick={() => window.location.reload()} className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-white/10 text-white shadow-lg active:scale-90 transition-transform">
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           </button>
           <button onClick={onSync} className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-studio-orange text-white shadow-lg active:scale-90 transition-transform">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
+          </button>
+          <button onClick={onReset} className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-red-500/10 text-red-500 shadow-lg active:scale-90 transition-transform border border-red-500/20">
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
           </button>
         </div>
       </nav>
@@ -118,24 +121,7 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
         </div>
       </div>
 
-      {/* Mobile Actions */}
-      <div className="md:hidden absolute -top-14 right-4 flex gap-2">
-        <button
-          onClick={() => window.location.reload()}
-          className="w-10 h-10 flex items-center justify-center bg-white/10 text-white/50 rounded-full active:bg-white/20 transition-all shadow-lg border border-white/5 backdrop-blur-sm"
-          title="Recarregar"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-        </button>
 
-        <button
-          onClick={onReset}
-          className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500/30 rounded-full active:bg-red-500 active:text-white transition-all shadow-lg border border-red-500/5 backdrop-blur-sm"
-          title="Resetar"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-        </button>
-      </div>
       {showPushModal && <PushSettingsModal onClose={() => setShowPushModal(false)} />}
     </aside>
   );

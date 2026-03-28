@@ -38,7 +38,13 @@ const DailyConfirmation: React.FC<Props> = ({
     const date = new Date(y, m - 1, d);
     const dow = date.getDay();
     const daily = overrides[selDate] || { hidden: [] };
-    const raw = slots.filter(s => s.teacherId === selTeacherId && s.dayOfWeek === dow && !daily.hidden.includes(s.id));
+    const raw = slots.filter(s => {
+      if (s.teacherId !== selTeacherId || daily.hidden.includes(s.id)) return false;
+      // Bugfix vital: Emusys envia com Data Exata. Nunca listar aulas de sexta no sábado.
+      if (s.date) return s.date === selDate;
+      // Se for recorrente manual, usa o dia da semana
+      return s.dayOfWeek === dow;
+    });
 
     // Deduplicação Atômica
     const dedup = new Map<string, any>();
