@@ -10,6 +10,7 @@ import Dashboard from './components/Dashboard';
 import FinancialDashboard from './components/FinancialDashboard';
 import TeacherManager from './components/TeacherManager';
 import ScheduleManager from './components/ScheduleManager';
+import PushSettingsModal from './components/PushSettingsModal';
 import { emusysService } from './services/emusysService';
 import { dbService } from './services/dbService';
 import { supabase } from './lib/supabase';
@@ -58,6 +59,7 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<{ id: string, msg: string, type: string }[]>([]);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('dark') === 'true');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showPushModal, setShowPushModal] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
@@ -476,6 +478,7 @@ const App: React.FC = () => {
         onImport={(f) => { }}
         onSync={handleEmusysSync}
         onReset={() => { if (confirm("Resetar tudo?")) { localStorage.clear(); window.location.reload(); } }}
+        onOpenPushModal={() => setShowPushModal(true)}
         hasUpdates={hasUpdates}
       />
 
@@ -670,6 +673,8 @@ const App: React.FC = () => {
           </div>
         ))}
       </div>
+      
+      {showPushModal && <PushSettingsModal onClose={() => setShowPushModal(false)} />}
     </div>
   );
 };

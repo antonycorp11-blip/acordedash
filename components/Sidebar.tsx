@@ -1,7 +1,6 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { notificationService } from '../services/notificationService';
-import PushSettingsModal from './PushSettingsModal';
 
 interface Props {
   currentView: string;
@@ -11,12 +10,11 @@ interface Props {
   onImport: (file: File) => void;
   onSync: () => void;
   onReset: () => void;
+  onOpenPushModal: () => void;
   hasUpdates?: boolean;
 }
 
-const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode, onImport, onSync, onReset, hasUpdates }) => {
-  const [showPushModal, setShowPushModal] = useState(false);
-  
+const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode, onImport, onSync, onReset, onOpenPushModal, hasUpdates }) => {
   const iconColor = 'text-white/60';
   const inactiveClass = `${iconColor} hover:text-studio-orange hover:bg-white/10`;
   const activeClass = 'bg-studio-orange text-white shadow-xl scale-110 opacity-100';
@@ -65,8 +63,8 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
         </button>
 
         <button
-          onClick={() => setShowPushModal(true)}
-          className={`shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center transition-all ${showPushModal ? activeClass : inactiveClass}`}
+          onClick={onOpenPushModal}
+          className={`shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center transition-all ${inactiveClass}`}
           title="Notificações e Alertas"
         >
           <svg className="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
@@ -121,8 +119,7 @@ const Sidebar: React.FC<Props> = ({ currentView, setView, darkMode, setDarkMode,
         </div>
       </div>
 
-
-      {showPushModal && <PushSettingsModal onClose={() => setShowPushModal(false)} />}
+      {/* Componente limpo na base */}
     </aside>
   );
 };
