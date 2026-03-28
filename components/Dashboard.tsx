@@ -29,10 +29,14 @@ const Dashboard: React.FC<Props> = ({ slots, teachers, onContact, isSyncing }) =
       };
     }
 
-    // 1. Contagem de Alunos Únicos (Não repetidos)
+    // Helper atômico apenas para remover pontuação, caixa e acento
+    const normalizeName = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase();
+
+    // 1. Contagem de Alunos Únicos Ativos (Não repetidos, Ignorando Aulas Experimentais)
     const validStudentNames = slots
-      .map(s => s.studentName.trim().toUpperCase())
-      .filter(n => n && n !== 'SEM ALUNO' && n !== 'LIVRE' && !n.includes('VAGA') && !n.includes('VAGO'));
+      .filter(s => !s.isExperimental) // Uma métrica forte de Alunos matriculados exclui lides de experimentais
+      .map(s => normalizeName(s.studentName))
+      .filter(n => n && n !== 'SEM ALUNO' && n !== 'LIVRE' && !n.includes('VAGA') && !n.includes('VAGO') && n !== 'NENHUM');
     
     const uniqueStudentsSet = new Set(validStudentNames);
     const totalAlunosUnicos = uniqueStudentsSet.size;
@@ -126,27 +130,28 @@ const Dashboard: React.FC<Props> = ({ slots, teachers, onContact, isSyncing }) =
       .map(([name, pupils]) => [name, pupils.size] as [string, number])
       .sort((a, b) => b[1] - a[1]);
 
-    // 5. Horários Livres
+    // 5. Horários Livres Simplificado (Tabela Limpa)
     const generateFreeReport = () => {
       const days = [1, 2, 3, 4, 5, 6];
       return days.map(dow => {
-        const endHour = dow === 6 ? 16 : 22;
+        const endHour = dow === 6 ? 16 : 21; // Sábado até as 16h, resto até as 21h (última aula 21-22)
         const daySlots = slots.filter(s => s.dayOfWeek === dow);
-        const periods = { manha: [] as any[], tarde: [] as any[], noite: [] as any[] };
+        const freeTimes: { time: string, free: number, isHighDemand: boolean }[] = [];
 
-        for (let h = 8; h < endHour; h++) {
+        for (let h = 8; h <= endHour; h++) {
           const hourPrefix = String(h).padStart(2, '0');
-          const occupiedInHour = new Set(daySlots.filter(s => s.time.startsWith(hourPrefix)).map(s => `${s.teacherId}-${s.studentName}`)).size;
-          const free = Math.max(0, 4 - occupiedInHour);
+          const occupiedInHour = new Set(daySlots.filter(s => s.time.startsWith(hourPrefix)).map(s => `${s.teacherId}-${normalizeName(s.studentName)}`)).size;
+          const free = Math.max(0, 4 - occupiedInHour); // 4 salas 
+          
           if (free > 0) {
-            const timeStr = `${hourPrefix}:00`;
-            const info = { time: timeStr, freeRooms: free };
-            if (h < 12) periods.manha.push(info);
-            else if (h < 18) periods.tarde.push(info);
-            else periods.noite.push(info);
+            freeTimes.push({ 
+              time: `${hourPrefix}:00`, 
+              free,
+              isHighDemand: free === 1 // Se só tem 1 sala restante, é alta demanda
+            });
           }
         }
-        return { dow, periods };
+        return { dow, freeTimes };
       });
     };
 
@@ -299,73 +304,48 @@ const Dashboard: React.FC<Props> = ({ slots, teachers, onContact, isSyncing }) =
           </div>
         </div>
 
-        {/* Direita: Horários Livres (Mapa de Salas) */}
-        <div className="xl:col-span-8 card-bg p-10 rounded-[3rem] shadow-sm">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        {/* Direita: Horários Livres (Mapa de Vagas) */}
+        <div className="xl:col-span-8 card-bg p-8 lg:p-10 rounded-[3rem] shadow-sm flex flex-col h-full max-h-[800px]">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 shrink-0">
             <div>
-              <h4 className="text-sm font-black text-studio-black dark:text-studio-beige uppercase tracking-[0.2em]">Salas Físicas Disponíveis</h4>
-              <p className="text-[10px] font-bold text-studio-brown/40 mt-1 uppercase tracking-widest italic">Considerando infraestrutura de 4 salas no total</p>
+              <h4 className="text-sm font-black text-studio-black dark:text-studio-beige uppercase tracking-[0.2em]">Mapa de Horários Disponíveis</h4>
+              <p className="text-[10px] font-bold text-studio-brown/40 mt-1 uppercase tracking-widest">Baseado em 4 salas de aulas simultâneas</p>
             </div>
             <div className="flex gap-4">
-              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-amber-100 dark:bg-amber-900/30"></div><span className="text-[9px] font-bold uppercase text-studio-brown/40">Manhã</span></div>
-              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-orange-100 dark:bg-orange-900/30"></div><span className="text-[9px] font-bold uppercase text-studio-brown/40">Tarde</span></div>
-              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-studio-brown/10 dark:bg-studio-brown/40"></div><span className="text-[9px] font-bold uppercase text-studio-brown/40">Noite</span></div>
+              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div><span className="text-[9px] font-bold uppercase text-studio-brown/40">Muitas Vagas</span></div>
+              <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div><span className="text-[9px] font-bold uppercase text-studio-brown/40">Alta Demanda</span></div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Container Scrollável das Colunas da Semana */}
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-6 flex-1 items-start snap-x h-full">
             {analytics.freeReport.map((day, i) => (
-              <div key={i} className="bg-studio-beige/30 dark:bg-studio-brown/5 rounded-[2rem] p-6 border border-studio-sand dark:border-studio-brown/10 flex flex-col gap-5">
-                <div className="flex justify-between items-center border-b border-studio-sand dark:border-studio-brown/10 pb-3">
-                  <span className="text-[11px] font-black text-studio-orange uppercase tracking-[0.2em]">{DAYS_OF_WEEK[day.dow].split('-')[0]}</span>
-                  <div className="text-[9px] font-bold text-studio-brown/30 uppercase">Salas Livres</div>
+              <div key={i} className="min-w-[160px] md:min-w-[180px] w-full snap-center bg-studio-sand/10 dark:bg-studio-brown/5 rounded-[2rem] p-5 border border-studio-sand dark:border-studio-brown/10 h-full max-h-full flex flex-col">
+                <div className="text-center pb-4 border-b border-studio-sand dark:border-studio-brown/10 mb-4 shrink-0">
+                  <span className="text-[11px] font-black text-studio-orange uppercase tracking-[0.3em]">{DAYS_OF_WEEK[day.dow].split('-')[0]}</span>
+                  <div className="text-[9px] font-bold text-studio-brown/40 uppercase mt-1">Hoje</div>
                 </div>
 
-                <div className="space-y-5">
-                  {/* Manhã */}
-                  {day.periods.manha.length > 0 && (
-                    <div>
-                      <span className="text-[8px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-2.5 block">Manhã</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {day.periods.manha.map((item, idx) => (
-                          <div key={idx} className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/20 rounded-lg text-[10px] font-black text-amber-700 flex items-center gap-2">
-                            <span>{item.time}</span>
-                            <span className="text-[9px] opacity-40 bg-amber-200/40 px-1.5 rounded">{item.freeRooms}s</span>
-                          </div>
-                        ))}
-                      </div>
+                <div className="flex-1 overflow-y-auto no-scrollbar space-y-2 relative pb-4">
+                  {day.freeTimes.length === 0 ? (
+                    <div className="py-10 text-center flex flex-col items-center justify-center opacity-40">
+                      <svg className="w-6 h-6 mb-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-red-500">Lotado</span>
                     </div>
-                  )}
-                  {/* Tarde */}
-                  {day.periods.tarde.length > 0 && (
-                    <div>
-                      <span className="text-[8px] font-black text-orange-600 dark:text-orange-500 uppercase tracking-widest mb-2.5 block">Tarde</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {day.periods.tarde.map((item, idx) => (
-                          <div key={idx} className="px-2.5 py-1.5 bg-orange-50 dark:bg-orange-950/20 rounded-lg text-[10px] font-black text-orange-700 flex items-center gap-2">
-                            <span>{item.time}</span>
-                            <span className="text-[9px] opacity-40 bg-orange-200/40 px-1.5 rounded">{item.freeRooms}s</span>
-                          </div>
-                        ))}
+                  ) : (
+                    day.freeTimes.map((t, idx) => (
+                      <div key={idx} className="flex justify-between items-center px-4 py-3 bg-white dark:bg-studio-brown/20 rounded-xl hover:scale-105 transition-all shadow-sm border border-transparent hover:border-studio-orange/20 cursor-default">
+                        <span className="text-xs font-black text-studio-black dark:text-studio-beige">{t.time}</span>
+                        <div className="flex items-center gap-2">
+                           {t.isHighDemand ? (
+                             <span className="text-[10px] font-black text-amber-500">{t.free}</span>
+                           ) : (
+                             <span className="text-[10px] font-black text-emerald-500">{t.free}</span>
+                           )}
+                           <div className={`w-2 h-2 rounded-full ${t.isHighDemand ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {/* Noite */}
-                  {day.periods.noite.length > 0 && (
-                    <div>
-                      <span className="text-[8px] font-black text-studio-brown dark:text-studio-beige/40 uppercase tracking-widest mb-2.5 block">Noite</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {day.periods.noite.map((item, idx) => (
-                          <div key={idx} className="px-2.5 py-1.5 bg-studio-brown/5 dark:bg-studio-brown/40 rounded-lg text-[10px] font-black text-studio-brown dark:text-studio-beige/60 flex items-center gap-2">
-                            <span>{item.time}</span>
-                            <span className="text-[9px] opacity-40 bg-studio-brown/20 dark:bg-white/10 px-1.5 rounded">{item.freeRooms}s</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {day.periods.manha.length === 0 && day.periods.tarde.length === 0 && day.periods.noite.length === 0 && (
-                    <div className="py-6 text-center opacity-20 text-[9px] font-black uppercase tracking-widest italic leading-relaxed">Capacidade Máxima Atingida</div>
+                    ))
                   )}
                 </div>
               </div>
