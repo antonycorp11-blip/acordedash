@@ -30,7 +30,11 @@ const Dashboard: React.FC<Props> = ({ slots, teachers, onContact, isSyncing }) =
     }
 
     // 1. Contagem de Alunos Únicos (Não repetidos)
-    const uniqueStudentsSet = new Set(slots.map(s => s.studentName.trim().toUpperCase()));
+    const validStudentNames = slots
+      .map(s => s.studentName.trim().toUpperCase())
+      .filter(n => n && n !== 'SEM ALUNO' && n !== 'LIVRE' && !n.includes('VAGA') && !n.includes('VAGO'));
+    
+    const uniqueStudentsSet = new Set(validStudentNames);
     const totalAlunosUnicos = uniqueStudentsSet.size;
 
     // 1.1 Taxa de Ocupação Real (Calculada pela Grade Semanal Média)
@@ -219,7 +223,7 @@ const Dashboard: React.FC<Props> = ({ slots, teachers, onContact, isSyncing }) =
                 const dowName = DAYS_OF_WEEK[s.dayOfWeek].split('-')[0];
 
                 const handleExperimentalMsg = () => {
-                  const text = `Olá, *${s.studentName.split(' ')[0]}*! 👋\n\nEstamos muito felizes em receber você para sua *Aula Experimental* de *${s.instrument}* aqui na *ConfirmAula Studio*! 🎸\n\n📍 Sua aula será no dia: *${dateFormatted}* (${dowName})\n⏰ Horário: *${s.time}*\n\nPodemos confirmar sua presença? Qualquer dúvida, estamos à disposição! 🚀`;
+                  const text = `Olá, *${s.studentName.split(' ')[0]}*! 👋\n\nEstamos muito felizes em receber você para sua *Aula Experimental* de *${s.instrument}* aqui no *Studio Acorde*! 🎸\n\n📍 Sua aula será no dia: *${dateFormatted}* (${dowName})\n⏰ Horário: *${s.time}*\n\nPodemos confirmar sua presença? Qualquer dúvida, estamos à disposição! 🚀`;
                   setModalData({ title: "BOAS-VINDAS (EXP)", body: text, slotId: s.id, date: s.date || '' });
                   setShowModal(true);
                 };

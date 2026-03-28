@@ -1,5 +1,5 @@
 self.addEventListener('push', function(event) {
-  let title = "ConfirmAula Studio";
+  let title = "Studio Acorde";
   let body = "Lembrete: Abra o sistema!";
   let icon = "/apple-touch-icon.png";
 

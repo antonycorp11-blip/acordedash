@@ -111,7 +111,7 @@ const DayDetailPanel: React.FC<Props> = ({ date, teacherId, teachers, slots, con
 
     if (s.isExperimental) {
       title = "BOAS-VINDAS (EXP)";
-      text = `Olá, *${s.studentName.split(' ')[0]}*! 👋\n\nEstamos muito felizes em receber você para sua *Aula Experimental* de *${s.instrument}* aqui na *ConfirmAula Studio*! 🎸\n\n📍 Sua aula será no dia: *${formattedDate}* (${dowName.split('-')[0]})\n⏰ Horário: *${s.time}*\n\nPodemos confirmar sua presença? Qualquer dúvida, estamos à disposição! 🚀`;
+      text = `Olá, *${s.studentName.split(' ')[0]}*! 👋\n\nEstamos muito felizes em receber você para sua *Aula Experimental* de *${s.instrument}* aqui no *Studio Acorde*! 🎸\n\n📍 Sua aula será no dia: *${formattedDate}* (${dowName.split('-')[0]})\n⏰ Horário: *${s.time}*\n\nPodemos confirmar sua presença? Qualquer dúvida, estamos à disposição! 🚀`;
     } else {
       const limit = h < 12 ? "as *18:00 de HOJE*" : `as *${String(h - 3).padStart(2, '0')}:${s.time.split(':')[1]}* (3h antes)`;
       text = `Olá, *${s.studentName}*! 👋\nPodemos confirmar sua aula de *${s.instrument}* ${dateReference} às *${s.time}*?\n\nFavor confirmar até ${limit}. Obrigado!`;

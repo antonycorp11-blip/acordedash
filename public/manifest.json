@@ -1,6 +1,6 @@
 {
-    "name": "ConfirmAula Studio",
-    "short_name": "ConfirmAula",
+    "name": "Studio Acorde",
+    "short_name": "Studio Acorde",
     "description": "Gestão de agendas para Studios de Música",
     "start_url": "/",
     "display": "standalone",
