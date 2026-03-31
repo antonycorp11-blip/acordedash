@@ -315,7 +315,8 @@ const App: React.FC = () => {
 
       const d = new Date();
       const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0] + ' 00:00:00';
-      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0] + ' 23:59:59';
+      // Sync until the end of the NEXT month to allow early confirmation
+      const lastDay = new Date(d.getFullYear(), d.getMonth() + 2, 0).toISOString().split('T')[0] + ' 23:59:59';
 
       const { slots: emSlots } = await emusysService.syncToAppData(firstDay, lastDay);
       if (emSlots.length === 0) return;
@@ -349,7 +350,8 @@ const App: React.FC = () => {
 
       const d = new Date();
       const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0] + ' 00:00:00';
-      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0] + ' 23:59:59';
+      // Sync until the end of the NEXT month to allow early confirmation
+      const lastDay = new Date(d.getFullYear(), d.getMonth() + 2, 0).toISOString().split('T')[0] + ' 23:59:59';
 
       const { teachers: emTeachers, slots: emSlots } = await emusysService.syncToAppData(firstDay, lastDay);
 
