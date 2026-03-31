@@ -473,6 +473,13 @@ const App: React.FC = () => {
     return dedup.size;
   }, [slots, selectedTeacherId]);
 
+  const visibleTeachers = useMemo(() => {
+    // Para simplificar a exibição e limpar lixos do Emusys,
+    // mostramos no topo APENAS os professores que possuem alguma aula cadastrada.
+    const teachersWithSlotsIds = new Set(slots.map(s => s.teacherId));
+    return teachers.filter(t => teachersWithSlotsIds.has(t.id));
+  }, [teachers, slots]);
+
   return (
     <div className="flex flex-col md:flex-row h-[100dvh] w-full overflow-hidden bg-studio-black">
       <Sidebar
@@ -509,7 +516,7 @@ const App: React.FC = () => {
                   >
                     Todos
                   </button>
-                  {teachers.map(t => (
+                  {visibleTeachers.map(t => (
                     <button
                       key={t.id}
                       onClick={() => setSelectedTeacherId(t.id)}
