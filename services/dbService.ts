@@ -27,21 +27,21 @@ export const dbService = {
 
     // Teachers
     async getTeachers() {
-        const { data, error } = await supabase.from('teachers').select('*').order('name');
+        const { data, error } = await supabase.from('teachers').select('*').limit(10000).order('name');
         if (error) throw error;
         return (data || []).map(t => this.mapFromDB(t)) as Teacher[];
     },
 
     // Slots
     async getSlots() {
-        const { data, error } = await supabase.from('schedule_slots').select('*');
+        const { data, error } = await supabase.from('schedule_slots').select('*').limit(10000);
         if (error) throw error;
         return (data || []).map(s => this.mapFromDB(s)) as ScheduleSlot[];
     },
 
     // Confirmations
     async getConfirmations() {
-        const { data, error } = await supabase.from('confirmations').select('*');
+        const { data, error } = await supabase.from('confirmations').select('*').limit(10000);
         if (error) throw error;
         const conf: any = {};
         data?.forEach(item => {
@@ -52,14 +52,14 @@ export const dbService = {
 
     // Expenses
     async getExpenses() {
-        const { data, error } = await supabase.from('expenses').select('*');
+        const { data, error } = await supabase.from('expenses').select('*').limit(10000);
         if (error) throw error;
         return (data || []).map(e => this.mapFromDB(e)) as Expense[];
     },
 
     // Financial Settings
     async getFinancialSettings(month?: string) {
-        let query = supabase.from('financial_settings').select('*');
+        let query = supabase.from('financial_settings').select('*').limit(10000);
         if (month) query = query.eq('month', month);
         const { data, error } = await query;
         if (error) throw error;
@@ -112,7 +112,7 @@ export const dbService = {
                 // DELETAR AULAS QUE FORAM CANCELADAS OU ALTERADAS
                 // Pegamos todos os IDs do banco. Os que não estiverem na lista atual, devem sumir.
                 const validIds = new Set(data.slots.map(s => s.id));
-                const { data: dbSlots, error: fetchErr } = await supabase.from('schedule_slots').select('id');
+                const { data: dbSlots, error: fetchErr } = await supabase.from('schedule_slots').select('id').limit(10000);
                 if (!fetchErr && dbSlots) {
                     const idsToDelete = dbSlots.map(s => s.id).filter(id => !validIds.has(id));
                     if (idsToDelete.length > 0) {
