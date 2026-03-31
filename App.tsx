@@ -132,8 +132,10 @@ const App: React.FC = () => {
 
         const finalT = mergedT.sort((a, b) => a.name.localeCompare(b.name));
 
-        // Slots: MESCLAGEM INCLUSIVA (Não apaga o celular se a nuvem estiver incompleta)
-        const allSlots = [...cloudS, ...(local.slots || [])];
+        // REGRA DE OURO PARA SLOTS: Aulas do Emusys ('em-') na nuvem são as únicas donas da verdade. Evita "zombie slots" (vagas deletadas que o cache ressuscita).
+        const allSlots = cloudS.length > 0 
+          ? [...cloudS, ...(local.slots || []).filter((s: ScheduleSlot) => !s.id.startsWith('em-') && !cloudS.some(cs => cs.id === s.id))]
+          : (local.slots || []);
         const slotMap = new Map<string, ScheduleSlot>();
 
         allSlots.forEach(s => {

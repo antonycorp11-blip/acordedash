@@ -108,6 +108,22 @@ export const dbService = {
                 }));
                 const { error: sErr } = await supabase.from('schedule_slots').upsert(slotsToDb);
                 if (sErr) throw sErr;
+
+                // DELETAR AULAS QUE FORAM CANCELADAS OU ALTERADAS
+                // Pegamos todos os IDs do banco. Os que não estiverem na lista atual, devem sumir.
+                const validIds = new Set(data.slots.map(s => s.id));
+                const { data: dbSlots, error: fetchErr } = await supabase.from('schedule_slots').select('id');
+                if (!fetchErr && dbSlots) {
+                    const idsToDelete = dbSlots.map(s => s.id).filter(id => !validIds.has(id));
+                    if (idsToDelete.length > 0) {
+                        console.log(`Deletando ${idsToDelete.length} aulas obsoletas...`);
+                        // Deletar em lotes de 100 para evitar conflitos de limite de requisição
+                        for (let i = 0; i < idsToDelete.length; i += 100) {
+                            const chunk = idsToDelete.slice(i, i + 100);
+                            await supabase.from('schedule_slots').delete().in('id', chunk);
+                        }
+                    }
+                }
             }
 
             // 3. Confirmations
