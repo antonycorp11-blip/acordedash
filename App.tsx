@@ -41,13 +41,18 @@ const isSimilar = (n1: string, n2: string) => {
   const words2 = norm2.split(/\s+/).filter(w => w.length > 2);
   if (words1.length === 0 || words2.length === 0) return false;
 
-  // Se compartilham o primeiro e o último nome (ex: Aquilles ... Santos)
-  if (words1[0] === words2[0] && words1[words1.length - 1] === words2[words2.length - 1]) return true;
+  // Nunca mesclar se o primeiro nome for diferente
+  if (words1[0] !== words2[0]) return false;
 
-  // Interseção de palavras (se compartilham 2 ou mais nomes principais)
+  // Verifica se um nome é subconjunto exato do outro
+  // Ex: "Aquilles Santos" é subconjunto de "Aquilles Santiago Santos"
+  const set1 = new Set(words1);
   const set2 = new Set(words2);
-  const common = words1.filter(w => set2.has(w));
-  return common.length >= 2;
+  
+  const isSubset1 = words1.every(w => set2.has(w));
+  const isSubset2 = words2.every(w => set1.has(w));
+
+  return isSubset1 || isSubset2;
 };
 /** ======================================================================= **/
 
