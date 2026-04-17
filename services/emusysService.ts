@@ -35,7 +35,7 @@ export const emusysService = {
 
         try {
             while (hasMore) {
-                let url = `${EMUSYS_API_URL}/aulas?token=${API_TOKEN}&data_hora_inicial=${encodeURIComponent(startDate)}&data_hora_final=${encodeURIComponent(endDate)}`;
+                let url = `${EMUSYS_API_URL}/aulas?token=${API_TOKEN}&data_hora_inicial=${encodeURIComponent(startDate)}&data_hora_final=${encodeURIComponent(endDate)}&_t=${Date.now()}`;
                 if (nextCursor) url += `&cursor=${encodeURIComponent(nextCursor)}`;
 
                 const response = await fetch(url, {
@@ -91,16 +91,20 @@ export const emusysService = {
                 const dayOfWeek = dateObj.getDay();
                 const time = timePart.substring(0, 5);
 
-                scheduleSlots.push({
-                    id: `em-${lesson.id}`,
-                    teacherId: teacher.id,
-                    dayOfWeek,
-                    time,
-                    studentName: (lesson.alunos[0]?.nome_aluno || 'SEM ALUNO').trim(),
-                    instrument: (lesson.curso_nome || 'GERAL').trim(),
-                    isExperimental: (lesson.categoria || '').toLowerCase().includes('experimental'),
-                    date: datePart,
-                    createdAt: Date.now()
+                const alunosList = lesson.alunos && lesson.alunos.length > 0 ? lesson.alunos : [{ nome_aluno: 'SEM ALUNO' }];
+
+                alunosList.forEach((aluno, index) => {
+                    scheduleSlots.push({
+                        id: index === 0 ? `em-${lesson.id}` : `em-${lesson.id}-${index}`,
+                        teacherId: teacher.id,
+                        dayOfWeek,
+                        time,
+                        studentName: (aluno.nome_aluno || 'SEM ALUNO').trim(),
+                        instrument: (lesson.curso_nome || 'GERAL').trim(),
+                        isExperimental: (lesson.categoria || '').toLowerCase().includes('experimental'),
+                        date: datePart,
+                        createdAt: Date.now()
+                    });
                 });
             });
 
