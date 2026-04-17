@@ -57,6 +57,11 @@ export const emusysService = {
                 nextCursor = data.paginacao?.proximo_cursor || null;
                 hasMore = !!(data.paginacao?.tem_mais && nextCursor);
 
+                // Emusys API rate limit protection (120 req / 60 sec)
+                if (hasMore) {
+                    await new Promise(resolve => setTimeout(resolve, 600)); // Delay safely to avoid hitting the ceiling
+                }
+
                 if (allItems.length > 5000) break;
             }
             return allItems;
