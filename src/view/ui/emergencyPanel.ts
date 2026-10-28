@@ -124,7 +124,7 @@ export class SurvivalPanel {
       }, this.scroll.guard(() => this.actions.openPerson(p.id)));
       b.label?.setX(30);
       b.sub?.setX(30);
-      const face = this.scene.add.image(14, 34, personKey(this.scene, p.look, p.archetype, p.morale < 25 ? 'raiva' : p.morale >= 70 ? 'feliz' : 'ok', 0)).setOrigin(0.5, 1).setScale(2 * 0.21);
+      const face = this.scene.add.image(14, 34, personKey(this.scene, p.look, p.archetype, p.morale < 25 ? 'raiva' : p.morale >= 70 ? 'feliz' : 'ok', 0)).setOrigin(0.5, 1).setScale(2 * 0.105);
       b.add(face);
       const mood = this.scene.add.rectangle(w - 6, 6, 4, 26, p.morale < 30 ? statusColor('bad') : p.morale < 50 ? statusColor('warn') : statusColor('good')).setOrigin(0, 0);
       b.add(mood);

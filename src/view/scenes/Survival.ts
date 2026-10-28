@@ -151,7 +151,7 @@ export class Survival extends Phaser.Scene {
       this.modal = undefined;
     };
     this.modal = m;
-    const portrait = this.add.image(m.x + 40, m.y + 80, personKey(this, p.look, p.archetype, p.health === 'doente' ? 'doente' : p.morale < 25 ? 'raiva' : p.morale >= 70 ? 'feliz' : 'ok', 2)).setScale(4 * 0.21).setOrigin(0.5, 1);
+    const portrait = this.add.image(m.x + 40, m.y + 80, personKey(this, p.look, p.archetype, p.health === 'doente' ? 'doente' : p.morale < 25 ? 'raiva' : p.morale >= 70 ? 'feliz' : 'ok', 2)).setScale(4 * 0.105).setOrigin(0.5, 1);
     const info = txt(this, m.x + 80, m.y + 12, personSummary(run, p).join('\n'), 15, P.paper, { wrap: 340 });
     m.add(portrait, info);
     m.add(txt(this, m.x + 14, m.y + 112, t('people.role'), 15, P.yellow));

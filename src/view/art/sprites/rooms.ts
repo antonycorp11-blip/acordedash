@@ -7,6 +7,8 @@ import type { EquipmentId, RoomType } from '../../../core/state';
 import { box, circle, css, ellipse, glow, hdTexture, hgrad, light, line, poly, rr, seeded, stone, vgrad, type Ctx } from '../hd';
 
 export const TILE = 16;
+/** Texels por unidade das salas (aparecem grandes no zoom). */
+export const ROOM_RES = 6;
 const INK = 0x14101c;
 export const COL = 2.4;
 export const CEIL = 2.8;
@@ -25,11 +27,12 @@ export function roomKey(scene: Phaser.Scene, type: RoomType, wTiles: number, hTi
     if (type === 'corridor') corridor(c, W, H, eq, entrance);
     else {
       wall(c, W, H, WALL[type]);
+      clutter(c, W, H, type);
       DRAW[type](c, W, H, eq);
       frame(c, W, H);
       lamps(c, W, type === 'greenhouse' ? 0 : W > 40 ? 2 : 1, H);
     }
-  });
+  }, ROOM_RES);
 }
 
 const floorY = (H: number) => H - FLOOR;
@@ -335,5 +338,97 @@ export function collapsedKey(scene: Phaser.Scene, wTiles: number, hTiles: number
     poly(c, [[0, 2], [W * 0.6, H * 0.45], [W * 0.6, H * 0.45 + 3], [0, 5]], 0x4e535c, INK, 0.5);
     for (let i = 0; i < W / 3; i++) stone(c, r() * W, H - 3 - r() * H * 0.45, 2 + r() * 3, 1.5 + r() * 2, 0x6a625c, i);
     line(c, [[W * 0.3, H - 6], [W * 0.8, H - 10]], 0xb0521f, 0.7);
-  });
+  }, ROOM_RES);
+}
+
+// ------------------------------------------------------------------ cenário
+
+/** Objetos de cenário comuns: canos no teto, itens de parede e de chão. */
+function clutter(c: Ctx, W: number, H: number, type: RoomType): void {
+  const fy = floorY(H);
+  const r = seeded(W * 7 + H * 3 + type.length * 101);
+  // Cano no teto com braçadeiras.
+  const pipeC = type === 'vent' || type === 'greenhouse' ? 0x5aa04a : type === 'reservoir' ? 0x4a7ab0 : 0x8a909a;
+  const py = CEIL + 1.4;
+  box(c, COL, py, W - COL * 2, 1.5, vgrad(c, py, py + 1.5, [[0, light(pipeC, 0.3)], [1, light(pipeC, -0.3)]]), 0.6, INK, 0.3);
+  for (let x = COL + 6; x < W - COL - 2; x += 11) box(c, x, py - 0.4, 1.2, 2.3, 0x3a3e46, 0.2, INK, 0.2);
+  // Itens de parede sorteados.
+  const wallItems = [extinguisher, grille, fusebox, clock, shelfBoxes];
+  // Só onde a parede fica livre: o resto já tem móvel na frente.
+  const spot: Partial<Record<RoomType, number>> = { dorm: 30, generator: COL + 2.5, kitchen: COL + 2.5, reservoir: W - 9 };
+  const x = spot[type];
+  if (x != null && x < W - 8) wallItems[Math.floor(r() * wallItems.length)](c, x, CEIL + 6.5);
+  // Itens de chão nos cantos.
+  const floorItems = [crates, barrel, toolbox, plantPot, bucket];
+  if (type !== 'greenhouse' && type !== 'reservoir' && type !== 'panel') {
+    floorItems[Math.floor(r() * floorItems.length)](c, W - COL - 6.5, fy);
+  }
+}
+
+function extinguisher(c: Ctx, x: number, y: number): void {
+  box(c, x + 0.6, y + 2, 2.2, 6, vgrad(c, y + 2, y + 8, [[0, 0xf06050], [1, 0xa02a2a]]), 0.9, INK, 0.3);
+  box(c, x + 1, y + 1, 1.4, 1.2, 0x2a2a2a, 0.2, INK, 0.2);
+  line(c, [[x + 2.4, y + 1.6], [x + 3.4, y + 4]], 0x1a1a1a, 0.35);
+  box(c, x + 0.9, y + 4, 1.6, 1.4, 0xf2f0ea, 0.2, null);
+}
+
+function grille(c: Ctx, x: number, y: number): void {
+  box(c, x, y, 6, 4.5, 0x5a5e66, 0.4, INK, 0.3);
+  for (let k = 0; k < 4; k++) line(c, [[x + 0.8, y + 0.9 + k * 0.9], [x + 5.2, y + 0.9 + k * 0.9]], 0x2a2e34, 0.35);
+}
+
+function fusebox(c: Ctx, x: number, y: number): void {
+  box(c, x, y, 4.6, 5.6, vgrad(c, y, y + 5.6, [[0, 0x9aa0a8], [1, 0x6a707a]]), 0.4, INK, 0.3);
+  poly(c, [[x + 2.3, y + 1], [x + 3.4, y + 3], [x + 1.2, y + 3]], 0xf4c84a, INK, 0.2);
+  line(c, [[x + 2.3, y + 5.6], [x + 2.3, y + 10]], 0x1a1a1a, 0.4);
+}
+
+function clock(c: Ctx, x: number, y: number): void {
+  circle(c, x + 2.4, y + 2.4, 2.3, 0xf2f0ea, INK, 0.35);
+  line(c, [[x + 2.4, y + 2.4], [x + 2.4, y + 1]], INK, 0.25);
+  line(c, [[x + 2.4, y + 2.4], [x + 3.4, y + 2.8]], INK, 0.25);
+}
+
+function shelfBoxes(c: Ctx, x: number, y: number): void {
+  box(c, x - 1, y + 4, 8, 0.8, 0x7a5232, 0.2, INK, 0.25);
+  box(c, x, y + 1.4, 2.6, 2.6, 0xb0864e, 0.2, INK, 0.25);
+  box(c, x + 3, y + 2, 2.2, 2, 0x4a7ad0, 0.2, INK, 0.25);
+  box(c, x + 5.4, y + 2.4, 1.2, 1.6, 0xe0573a, 0.2, INK, 0.2);
+}
+
+function crates(c: Ctx, x: number, fy: number): void {
+  for (const [dx, dy, s] of [[0, -4.5, 4.5], [3.2, -3.6, 3.6], [0.8, -8, 3.4]] as [number, number, number][]) {
+    box(c, x + dx, fy + dy, s, s, vgrad(c, fy + dy, fy + dy + s, [[0, 0xc0905a], [1, 0x8a5e36]]), 0.2, INK, 0.3);
+    line(c, [[x + dx + 0.3, fy + dy + 0.3], [x + dx + s - 0.3, fy + dy + s - 0.3]], 0x6a4426, 0.3);
+  }
+}
+
+function barrel(c: Ctx, x: number, fy: number): void {
+  box(c, x, fy - 6.5, 4.2, 6.5, hgrad(c, x, x + 4.2, [[0, 0xe0573a], [0.5, 0xf07a5a], [1, 0x8a2a2a]]), 0.8, INK, 0.35);
+  line(c, [[x, fy - 4.6], [x + 4.2, fy - 4.6]], 0x5a1a1a, 0.3);
+  line(c, [[x, fy - 1.8], [x + 4.2, fy - 1.8]], 0x5a1a1a, 0.3);
+  poly(c, [[x + 2.1, fy - 4], [x + 2.9, fy - 2.6], [x + 1.3, fy - 2.6]], 0xf4c84a, null);
+}
+
+function toolbox(c: Ctx, x: number, fy: number): void {
+  box(c, x, fy - 3, 5, 3, vgrad(c, fy - 3, fy, [[0, 0xe0573a], [1, 0x9a2a2a]]), 0.4, INK, 0.3);
+  line(c, [[x + 1.5, fy - 3], [x + 1.5, fy - 4], [x + 3.5, fy - 4], [x + 3.5, fy - 3]], INK, 0.35);
+}
+
+function plantPot(c: Ctx, x: number, fy: number): void {
+  box(c, x + 0.6, fy - 3.2, 3.4, 3.2, 0xb0643a, 0.5, INK, 0.3);
+  for (const [dx, a] of [[0.4, -0.6], [2.3, 0], [3.8, 0.6]] as [number, number][]) {
+    c.beginPath();
+    c.ellipse(x + dx + 0.4, fy - 5.2, 0.9, 2.2, a, 0, Math.PI * 2);
+    c.fillStyle = css(0x5aa04a);
+    c.fill();
+    c.strokeStyle = css(INK);
+    c.lineWidth = 0.25;
+    c.stroke();
+  }
+}
+
+function bucket(c: Ctx, x: number, fy: number): void {
+  poly(c, [[x, fy - 3.4], [x + 3.6, fy - 3.4], [x + 3.1, fy], [x + 0.5, fy]], 0x9aa0a8, INK, 0.3);
+  ellipse(c, x + 1.8, fy - 3.4, 1.8, 0.5, css(0x4a7ad0), INK, 0.2);
 }

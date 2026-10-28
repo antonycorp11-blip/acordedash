@@ -12,16 +12,18 @@ import { computeTopology } from '../core/topology';
 import { P } from './art/palette';
 import { css, ellipse, hdTexture, line, liveCanvas, RES } from './art/hd';
 import { iconKey } from './art/sprites/icons';
-import { CEIL, collapsedKey, fanKey, FLOOR, roomKey, TILE } from './art/sprites/rooms';
+import { CEIL, collapsedKey, fanKey, FLOOR, ROOM_RES, roomKey, TILE } from './art/sprites/rooms';
 import { lightTexture } from './art/pixel';
-import { bubbleKey, personKey, PERSON_H, type Expression } from './art/survivors';
+import { bubbleKey, personKey, PERSON_H, PERSON_RES, type Expression } from './art/survivors';
 import { drawGround, drawSky, drawTower, skyMood } from './art/world';
 import { t } from './text';
 import { store } from './store';
 import { FONT, fontSize, ptr, UI_ZOOM } from './ui/buttons';
 
 export const SKY_H = 96;
-const GROUND_RES = 3;
+/** Escala dos personagens dentro do bunker (cabem com folga na sala). */
+const WORLD_PERSON = 0.8;
+const GROUND_RES = 4;
 const DARK_RES = 1.5;
 
 const ROOM_ICON: Record<string, string> = {
@@ -192,7 +194,8 @@ export class BunkerView {
     const bh = (y1 - y0) * TILE;
     const fit = Math.min(this.vp.w / bw, this.vp.h / bh);
     // Zoom de perto o bastante para ver as pessoas; o resto se vê arrastando.
-    this.zoom = Phaser.Math.Clamp(Math.floor(fit * 2) / 2, 2, 3);
+    // Começa de perto, como nas referências; o resto do bunker se vê arrastando ou com a pinça.
+    this.zoom = Phaser.Math.Clamp(Math.floor(fit * 2) / 2, 3, 3);
     this.world.setScale(this.zoom);
     const cx = ((x0 + x1) / 2) * TILE;
     // Começa mostrando do céu para baixo.
@@ -495,7 +498,7 @@ export class BunkerView {
     const W = r.w * TILE;
     const H = r.h * TILE;
     const key = r.collapsed ? collapsedKey(sc, r.w, r.h) : roomKey(sc, r.type, r.w, r.h, r.equipment, isEntrance(r));
-    const img = sc.add.image(x, y, key).setOrigin(0, 0).setScale(1 / RES);
+    const img = sc.add.image(x, y, key).setOrigin(0, 0).setScale(1 / ROOM_RES);
     const cracks = sc.add.image(x, y, crackTex(sc, r.w, r.h, 1)).setOrigin(0, 0).setScale(1 / RES).setVisible(false);
     const dark = sc.add.rectangle(x + 0.5, y + 0.5, W - 1, H - 1, 0x07050a, 0.62).setOrigin(0, 0).setVisible(false);
     const icons = sc.add.container(x + W - 4, y + CEIL + 2);
@@ -657,7 +660,7 @@ export class BunkerView {
       if (!v) {
         const pos = this.spotIn(loc, p.id);
         v = {
-          sprite: this.scene.add.image(pos.x, pos.y + 0.6, personKey(this.scene, p.look, p.archetype, 'ok', 0)).setOrigin(0.5, 1).setScale(1 / RES),
+          sprite: this.scene.add.image(pos.x, pos.y + 0.6, personKey(this.scene, p.look, p.archetype, 'ok', 0)).setOrigin(0.5, 1).setScale(WORLD_PERSON / PERSON_RES),
           shadow: this.scene.add.image(pos.x, pos.y, shadowKey(this.scene)).setOrigin(0.5, 0.5).setScale(1 / RES),
           roomId: loc?.id ?? null, targetX: pos.x, nextMove: 0, frameT: 0, frame: 0, gestureUntil: 0, bubbleUntil: 0,
         };
@@ -708,7 +711,7 @@ export class BunkerView {
     bg.strokeRoundedRect(-t.width / 2 - 4, -t.height - 4, t.width + 8, t.height + 6, 4);
     bg.fillTriangle(-3, 1.6, 3, 1.6, -1, 5);
     t.setY(-1);
-    const c = this.scene.add.container(v.sprite.x, v.sprite.y - PERSON_H - 2, [bg, t]).setScale(1 / Math.max(1, this.zoom * 0.8));
+    const c = this.scene.add.container(v.sprite.x, v.sprite.y - PERSON_H * WORLD_PERSON - 2, [bg, t]).setScale(1 / Math.max(1, this.zoom * 0.8));
     this.fxLayer.add(c);
     v.bubble = c;
     v.bubbleUntil = this.scene.time.now + ms;
@@ -775,12 +778,12 @@ export class BunkerView {
       const hour = Math.floor((run.minute % 1440) / 60);
       const kind = !surviving ? null : p.health === 'doente' ? 'doente' : p.morale < 30 ? 'triste' : (hour >= 22 || hour < 6) && loc?.type === 'dorm' ? 'zz' : p.morale >= 75 ? 'feliz' : null;
       if (kind && !v.bubble) {
-        v.mood ??= this.peopleLayer.scene.add.image(0, 0, bubbleKey(this.scene, kind)).setOrigin(0.5, 1).setScale(1 / RES);
+        v.mood ??= this.peopleLayer.scene.add.image(0, 0, bubbleKey(this.scene, kind)).setOrigin(0.5, 1).setScale(1 / 8);
         if (!v.mood.parentContainer) this.peopleLayer.add(v.mood);
-        v.mood.setTexture(bubbleKey(this.scene, kind)).setVisible(true).setPosition(v.sprite.x + 3, v.sprite.y - PERSON_H + 1 + Math.sin(time / 300 + p.id) * 0.4);
+        v.mood.setTexture(bubbleKey(this.scene, kind)).setVisible(true).setPosition(v.sprite.x + 3, v.sprite.y - PERSON_H * WORLD_PERSON + 0.5 + Math.sin(time / 300 + p.id) * 0.4);
       } else v.mood?.setVisible(false);
       if (v.bubble) {
-        v.bubble.setPosition(v.sprite.x, v.sprite.y - PERSON_H - 2);
+        v.bubble.setPosition(v.sprite.x, v.sprite.y - PERSON_H * WORLD_PERSON - 2);
         if (time > v.bubbleUntil) {
           v.bubble.destroy();
           v.bubble = undefined;

@@ -40,7 +40,7 @@ export class Victory extends Phaser.Scene {
     this.add.rectangle(0, 270, 640, 90, P.dirtDark).setOrigin(0, 0);
     this.add.rectangle(0, 268, 640, 4, P.ash).setOrigin(0, 0);
     alivePeople(run).forEach((p, i) => {
-      this.add.image(260 + i * 20, 270, personKey(this, p.look, p.archetype, 'feliz', i % 2 ? 2 : 0)).setOrigin(0.5, 1).setScale(2 * 0.21);
+      this.add.image(260 + i * 20, 270, personKey(this, p.look, p.archetype, 'feliz', i % 2 ? 2 : 0)).setOrigin(0.5, 1).setScale(2 * 0.105);
     });
     txt(this, 320, 30, t('victory.title'), 22, P.yellow, { title: true, stroke: '#14101c', strokeThickness: 6 }).setOrigin(0.5);
     txt(this, 320, 70, t('victory.text', { dia: run.config.goalDays }, variantOf(run.seed, 'v')), 18, P.white, { wrap: 520, align: 'center' }).setOrigin(0.5, 0);

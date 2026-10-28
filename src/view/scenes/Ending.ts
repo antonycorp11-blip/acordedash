@@ -70,13 +70,13 @@ export class Ending extends Phaser.Scene {
         // Linha verde no horizonte e todo mundo junto.
         g.fillStyle(P.green);
         g.fillRect(0, 226, 330, 3);
-        people.forEach((p, i) => this.add.image(70 + i * 26, 240, personKey(this, p.look, p.archetype, 'feliz', i % 2 ? 2 : 0)).setOrigin(0.5, 1).setScale(2 * 0.21));
+        people.forEach((p, i) => this.add.image(70 + i * 26, 240, personKey(this, p.look, p.archetype, 'feliz', i % 2 ? 2 : 0)).setOrigin(0.5, 1).setScale(2 * 0.105));
         this.add.image(40, 240, roomKey(this, 'corridor', 1, 1, null, true)).setOrigin(0.5, 0).setScale(0.25);
         break;
       }
       case 'solitario': {
         const t0 = people.find((p) => p.archetype === 'viajante') ?? { look: 7, archetype: 'viajante' as const };
-        this.add.image(200, 240, personKey(this, t0.look, 'viajante', 'ok', 0)).setOrigin(0.5, 1).setScale(3 * 0.21);
+        this.add.image(200, 240, personKey(this, t0.look, 'viajante', 'ok', 0)).setOrigin(0.5, 1).setScale(3 * 0.105);
         this.add.image(80, 240, roomKey(this, 'dorm', 4, 2, null)).setOrigin(0.5, 0).setScale(0.25).setAlpha(0.5);
         for (let i = 0; i < 5; i++) {
           g.fillStyle(P.paperDark, 0.15);
@@ -95,7 +95,7 @@ export class Ending extends Phaser.Scene {
         this.add.image(110, 250, roomKey(this, 'generator', 3, 2, null)).setOrigin(0.5, 0).setScale(0.25).setAngle(-12);
         this.add.image(220, 255, roomKey(this, 'dorm', 4, 2, null)).setOrigin(0.5, 0).setScale(0.25).setAngle(9);
         const t0 = people.find((p) => p.archetype === 'viajante') ?? { look: 7 };
-        const guy = this.add.image(160, 150, personKey(this, t0.look, 'viajante', 'medo', 2)).setScale(2 * 0.21).setAngle(30);
+        const guy = this.add.image(160, 150, personKey(this, t0.look, 'viajante', 'medo', 2)).setScale(2 * 0.105).setAngle(30);
         if (!store.settings.reduceMotion) this.tweens.add({ targets: guy, angle: 390, duration: 4000, repeat: -1 });
         break;
       }
@@ -104,7 +104,7 @@ export class Ending extends Phaser.Scene {
         g.fillStyle(P.ink);
         g.fillEllipse(220, 262, 240, 40);
         const t0 = people.find((p) => p.archetype === 'viajante') ?? { look: 7 };
-        this.add.image(110, 244, personKey(this, t0.look, 'viajante', 'feliz', 2)).setOrigin(0.5, 1).setScale(3 * 0.21);
+        this.add.image(110, 244, personKey(this, t0.look, 'viajante', 'feliz', 2)).setOrigin(0.5, 1).setScale(3 * 0.105);
         g.fillStyle(P.dirt);
         g.fillRect(268, 200, 4, 40);
         g.fillStyle(P.paper);
