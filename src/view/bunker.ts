@@ -6,19 +6,27 @@ import { BALANCE } from '../core/balance';
 import { isEntrance } from '../core/grid';
 import { activeCat } from '../core/query';
 import { alivePeople, personLocation } from '../core/rooms';
-import { DUG, ROCK, type Person, type Room, type RunState } from '../core/state';
+import type { Person, Room, RunState } from '../core/state';
 import { waterCapacity } from '../core/systems/food';
 import { computeTopology } from '../core/topology';
 import { P } from './art/palette';
+import { css, ellipse, hdTexture, line, liveCanvas, RES } from './art/hd';
 import { iconKey } from './art/sprites/icons';
-import { collapsedKey, fanKey, roomKey } from './art/sprites/rooms';
-import { crackKey, dirtKey, edgeKey, grassKey, hatchKey, rockKey, rubbleKey, TILE, tunnelKey } from './art/sprites/tiles';
+import { CEIL, collapsedKey, fanKey, FLOOR, roomKey, TILE } from './art/sprites/rooms';
 import { lightTexture } from './art/pixel';
-import { personKey, PERSON_H, type Expression } from './art/survivors';
+import { bubbleKey, personKey, PERSON_H, type Expression } from './art/survivors';
+import { drawGround, drawSky, drawTower, skyMood } from './art/world';
+import { t } from './text';
 import { store } from './store';
 import { FONT, fontSize, ptr, UI_ZOOM } from './ui/buttons';
 
-export const SKY_H = 56;
+export const SKY_H = 96;
+const GROUND_RES = 3;
+const DARK_RES = 1.5;
+
+const ROOM_ICON: Record<string, string> = {
+  dorm: 'bed', generator: 'bolt', panel: 'panel', vent: 'wind', greenhouse: 'plant', kitchen: 'pot', reservoir: 'water',
+};
 
 export interface Viewport {
   x: number;
@@ -32,7 +40,8 @@ interface RoomVisual {
   img: Phaser.GameObjects.Image;
   dark: Phaser.GameObjects.Rectangle;
   glow?: Phaser.GameObjects.Rectangle;
-  cracks: Phaser.GameObjects.TileSprite;
+  cracks: Phaser.GameObjects.Image;
+  label?: Phaser.GameObjects.Container;
   icons: Phaser.GameObjects.Container;
   iconSig: string;
   fan?: Phaser.GameObjects.Image;
@@ -59,6 +68,7 @@ interface PersonVisual {
   gestureUntil: number;
   bubble?: Phaser.GameObjects.Container;
   bubbleUntil: number;
+  mood?: Phaser.GameObjects.Image;
 }
 
 export interface BunkerInput {
@@ -75,9 +85,9 @@ export interface BunkerInput {
 
 export class BunkerView {
   readonly world: Phaser.GameObjects.Container;
-  private skyG: Phaser.GameObjects.Graphics;
-  private terrainRT: Phaser.GameObjects.RenderTexture;
-  private darkRT: Phaser.GameObjects.RenderTexture;
+  private skyImg: Phaser.GameObjects.Image;
+  private groundImg: Phaser.GameObjects.Image;
+  private darkImg: Phaser.GameObjects.Image;
   private glowLayer: Phaser.GameObjects.Container;
   private doorsG: Phaser.GameObjects.Graphics;
   private lightSig = '';
@@ -101,7 +111,6 @@ export class BunkerView {
   private pinchDist = 0;
   private dragStart: { x: number; y: number; moved: number } | null = null;
   private lastPaint = '';
-  private clouds: { x: number; y: number; w: number }[] = [];
   readonly worldW: number;
   readonly worldH: number;
 
@@ -109,17 +118,20 @@ export class BunkerView {
     this.worldW = BALANCE.grid.width * TILE;
     this.worldH = SKY_H + BALANCE.grid.height * TILE;
     this.world = scene.add.container(vp.x, vp.y).setDepth(0);
-    this.skyG = scene.add.graphics();
-    this.terrainRT = scene.add.renderTexture(0, SKY_H, this.worldW, this.worldH - SKY_H).setOrigin(0, 0);
-    this.darkRT = scene.add.renderTexture(0, SKY_H, this.worldW, this.worldH - SKY_H).setOrigin(0, 0);
+    // Céu, solo e escuridão são canvases em alta resolução, redesenhados quando mudam.
+    liveCanvas(scene, 'w_sky', this.worldW, SKY_H, RES);
+    liveCanvas(scene, 'w_ground', this.worldW, this.worldH - SKY_H, GROUND_RES);
+    liveCanvas(scene, 'w_dark', this.worldW, this.worldH - SKY_H, DARK_RES);
+    this.skyImg = scene.add.image(0, 0, 'w_sky').setOrigin(0, 0).setScale(1 / RES);
+    this.groundImg = scene.add.image(0, SKY_H, 'w_ground').setOrigin(0, 0).setScale(1 / GROUND_RES);
+    this.darkImg = scene.add.image(0, SKY_H, 'w_dark').setOrigin(0, 0).setScale(1 / DARK_RES);
     this.glowLayer = scene.add.container(0, 0);
     this.roomLayer = scene.add.container(0, 0);
     this.doorsG = scene.add.graphics();
     this.fxLayer = scene.add.container(0, 0);
     this.peopleLayer = scene.add.container(0, 0);
     this.cursor = scene.add.graphics();
-    this.world.add([this.skyG, this.terrainRT, this.darkRT, this.glowLayer, this.roomLayer, this.doorsG, this.peopleLayer, this.fxLayer, this.cursor]);
-    for (let i = 0; i < 5; i++) this.clouds.push({ x: i * 110 + 20, y: 8 + (i % 3) * 9, w: 24 + (i % 2) * 14 });
+    this.world.add([this.skyImg, this.groundImg, this.darkImg, this.glowLayer, this.roomLayer, this.doorsG, this.peopleLayer, this.fxLayer, this.cursor]);
     this.minZoom = Math.min(1, Math.min(vp.w / this.worldW, vp.h / this.worldH));
     this.zoom = 1;
     this.applyCamera();
@@ -150,7 +162,7 @@ export class BunkerView {
 
   zoomAt(sx: number, sy: number, factor: number): void {
     const before = this.zoom;
-    this.zoom = Phaser.Math.Clamp(this.zoom * factor, this.minZoom, 3);
+    this.zoom = Phaser.Math.Clamp(this.zoom * factor, this.minZoom, 4);
     const k = this.zoom / before;
     this.world.x = sx - (sx - this.world.x) * k;
     this.world.y = sy - (sy - this.world.y) * k;
@@ -158,7 +170,7 @@ export class BunkerView {
   }
 
   zoomTo(sx: number, sy: number, z: number): void {
-    this.zoomAt(sx, sy, Phaser.Math.Clamp(z, this.minZoom, 3) / this.zoom);
+    this.zoomAt(sx, sy, Phaser.Math.Clamp(z, this.minZoom, 4) / this.zoom);
   }
 
   /** Enquadra as salas existentes (ou a superfície, se não houver nenhuma). */
@@ -171,18 +183,25 @@ export class BunkerView {
     if (live.length) {
       x0 = Math.min(...live.map((r) => r.x)) - 2;
       x1 = Math.max(...live.map((r) => r.x + r.w)) + 2;
-      y0 = -3;
+      // A entrada é corredor fino: o enquadramento usa as salas de verdade.
+      const real = live.filter((r) => r.type !== 'corridor');
+      y0 = (real.length ? Math.min(...real.map((r) => r.y)) : 0) - 1;
       y1 = Math.max(...live.map((r) => r.y + r.h)) + 1;
     }
     const bw = (x1 - x0) * TILE;
     const bh = (y1 - y0) * TILE;
     const fit = Math.min(this.vp.w / bw, this.vp.h / bh);
     // Zoom de perto o bastante para ver as pessoas; o resto se vê arrastando.
-    this.zoom = Phaser.Math.Clamp(Math.floor(fit * 2) / 2, 1.5, 2.5);
+    this.zoom = Phaser.Math.Clamp(Math.floor(fit * 2) / 2, 2, 3);
     this.world.setScale(this.zoom);
     const cx = ((x0 + x1) / 2) * TILE;
     // Começa mostrando do céu para baixo.
-    const cy = Math.min(SKY_H + ((y0 + y1) / 2) * TILE, SKY_H - 30 + this.vp.h / (2 * this.zoom));
+    // Mostra o céu quando as salas estão rasas; senão, centraliza nelas.
+    const half = this.vp.h / (2 * this.zoom);
+    const centered = SKY_H + ((y0 + y1) / 2) * TILE;
+    const skyTop = SKY_H - 46 + half;
+    const roomsTop = SKY_H + y0 * TILE - 8 + half;
+    const cy = Math.min(roomsTop, Math.max(skyTop, centered));
     this.world.x = this.vp.x + this.vp.w / 2 - cx * this.zoom;
     this.world.y = this.vp.y + this.vp.h / 2 - cy * this.zoom;
     this.applyCamera();
@@ -318,109 +337,34 @@ export class BunkerView {
   }
 
   private drawSky(run: RunState): void {
-    const after = run.phase === 'survival' || run.phase === 'ended';
-    const sig = `${after}-${run.phase === 'countdown'}-${Math.floor(this.clouds[0].x)}`;
+    const mood = skyMood(run);
+    const ents = run.rooms.filter((r) => isEntrance(r)).map((r) => r.x * TILE + 8);
+    const sig = `${mood}|${ents.join(',')}`;
     if (sig === this.skySig) return;
     this.skySig = sig;
-    const g = this.skyG;
-    g.clear();
-    const W = this.worldW;
-    const stops = after
-      ? [0x1a1220, 0x3a1e2a, 0x6e2e2a, 0xb0521f, 0xe8833a]
-      : run.phase === 'countdown'
-        ? [0x2a1020, 0x6a1e28, 0xa8322e, 0xe0603a, 0xf4a860]
-        : [0x4a7ad0, 0x5f8fd8, 0x7aa6dc, 0x9cc0e0, 0xc8dce6];
-    // Céu em faixas com pontilhado entre elas (gradiente de pixel art).
-    const bandH = SKY_H / stops.length;
-    g.fillStyle(stops[0]);
-    g.fillRect(-300, -400, W + 600, 400);
-    stops.forEach((c, i) => {
-      g.fillStyle(c);
-      g.fillRect(-300, Math.floor(i * bandH), W + 600, Math.ceil(bandH) + 1);
-      if (i > 0) {
-        g.fillStyle(stops[i - 1]);
-        const y = Math.floor(i * bandH);
-        for (let x = -300; x < W + 300; x += 2) g.fillRect(x + ((x / 2) % 2 ? 1 : 0), y, 1, 1);
-      }
-    });
-    if (!after) {
-      if (run.phase !== 'countdown') {
-        g.fillStyle(0xfff2b0);
-        g.fillCircle(W - 52, 14, 7);
-        g.fillStyle(P.yellow);
-        g.fillCircle(W - 52, 14, 5);
-      }
-      for (const c of this.clouds) cloud(g, c.x, c.y, c.w);
-      // Morros e cidade ao longe.
-      hills(g, W, SKY_H - 14, 0x7f9fc0, 7, 0.07);
-      skyline(g, W, SKY_H - 8, 0x6f86a8, 3);
-      hills(g, W, SKY_H - 6, 0x4f7a4a, 4, 0.12);
-      // Casa e árvores: a vida de antes.
-      house(g, 34, SKY_H - 4);
-      tree(g, W - 90, SKY_H - 4);
-      tree(g, W - 70, SKY_H - 4, true);
-      tree(g, 96, SKY_H - 4, true);
-    } else {
-      // Brilho no horizonte, cogumelo de fumaça e ruínas.
-      g.fillStyle(0x3a1e2a, 0.8);
-      g.fillCircle(W * 0.62, 8, 22);
-      g.fillCircle(W * 0.62 - 16, 12, 14);
-      g.fillCircle(W * 0.62 + 16, 12, 14);
-      g.fillRect(W * 0.62 - 5, 14, 10, SKY_H - 20);
-      skyline(g, W, SKY_H - 6, 0x1a1220, 11, true);
-      hills(g, W, SKY_H - 4, 0x2a1c22, 3, 0.1);
-      g.fillStyle(P.orange, 0.5);
-      for (let i = 0; i < 6; i++) g.fillRect((i * 83) % W, SKY_H - 9 - (i % 3), 2, 2);
-    }
+    const tex = liveCanvas(this.scene, 'w_sky', this.worldW, SKY_H, RES);
+    const c = tex.getContext();
+    c.setTransform(RES, 0, 0, RES, 0, 0);
+    c.clearRect(0, 0, this.worldW, SKY_H);
+    drawSky(c, mood, this.worldW, SKY_H, ents);
+    tex.refresh();
   }
 
   private drawTerrain(run: RunState): void {
-    const sig = run.terrain.join('') + '|' + run.rooms.map((r) => `${r.id}${r.collapsed ? 'x' : ''}`).join(',') + run.phase;
+    const sig = run.terrain.join('') + '|' + run.rooms.map((r) => `${r.id}${r.collapsed ? 'x' : ''}`).join(',');
     if (sig === this.terrainSig) return;
     this.terrainSig = sig;
-    const rt = this.terrainRT;
-    rt.clear();
-    const after = run.phase === 'survival' || run.phase === 'ended';
-    const tunnel = tunnelKey(this.scene);
-    const covered = new Set<number>();
-    const collapsedCells = new Set<number>();
-    for (const r of run.rooms) {
-      for (let y = r.y; y < r.y + r.h; y++) {
-        for (let x = r.x; x < r.x + r.w; x++) {
-          covered.add(y * run.width + x);
-          if (r.collapsed) collapsedCells.add(y * run.width + x);
-        }
-      }
-    }
-    const dugAt = (x: number, y: number) => x >= 0 && y >= 0 && x < run.width && y < run.height && run.terrain[y * run.width + x] === DUG;
-    rt.beginDraw();
-    for (let y = 0; y < run.height; y++) {
-      for (let x = 0; x < run.width; x++) {
-        const i = y * run.width + x;
-        const t = run.terrain[i];
-        const v = (x * 7 + y * 13 + ((x * y) % 5)) % 4;
-        let key: string;
-        if (collapsedCells.has(i)) key = rubbleKey(this.scene, v);
-        else if (t === DUG) key = tunnel;
-        else if (t === ROCK) key = rockKey(this.scene, Math.abs((x * 73856093) ^ (y * 19349663)) % 6, y);
-        else key = dirtKey(this.scene, v, y);
-        rt.batchDraw(key, x * TILE, y * TILE);
-        // Túnel aberto ganha sombra no teto, chão de terra e laterais.
-        if (t === DUG && !covered.has(i)) {
-          if (y > 0 && !dugAt(x, y - 1)) rt.batchDraw(edgeKey(this.scene, 'n'), x * TILE, y * TILE);
-          if (!dugAt(x, y + 1)) rt.batchDraw(edgeKey(this.scene, 's'), x * TILE, y * TILE);
-          if (!dugAt(x - 1, y)) rt.batchDraw(edgeKey(this.scene, 'w'), x * TILE, y * TILE);
-          if (!dugAt(x + 1, y)) rt.batchDraw(edgeKey(this.scene, 'e'), x * TILE, y * TILE);
-        }
-      }
-    }
-    for (let x = 0; x < run.width; x++) {
-      if (run.terrain[x] !== DUG) rt.batchDraw(grassKey(this.scene, after, (x * 5) % 3), x * TILE, -3);
-    }
-    rt.endDraw();
+    const H = this.worldH - SKY_H;
+    const tex = liveCanvas(this.scene, 'w_ground', this.worldW, H, GROUND_RES);
+    const c = tex.getContext();
+    c.setTransform(GROUND_RES, 0, 0, GROUND_RES, 0, 0);
+    c.lineJoin = 'round';
+    c.lineCap = 'round';
+    drawGround(c, run, this.worldW, H);
+    tex.refresh();
   }
 
-  /** Escuridão do subsolo, com luz saindo das salas acesas. */
+  /** Escuridão do subsolo, com luz quente saindo das salas acesas. */
   private drawLighting(run: RunState): void {
     const surviving = run.phase === 'survival' || run.phase === 'ended';
     const lit = run.rooms.filter((r) => !r.collapsed && (!surviving || r.powered || (r.type === 'generator' && r.wear < 100)));
@@ -428,38 +372,48 @@ export class BunkerView {
     if (sig === this.lightSig) return;
     this.lightSig = sig;
     const H = this.worldH - SKY_H;
-    const dark = this.darkRT;
-    dark.clear();
-    const g = this.scene.make.graphics({}, false);
-    // Mais fundo, mais escuro.
-    const steps = 8;
-    for (let i = 0; i < steps; i++) {
-      g.fillStyle(0x0a0710, 0.12 + (i / steps) * 0.5);
-      g.fillRect(0, (H / steps) * i, this.worldW, H / steps + 1);
+    const tex = liveCanvas(this.scene, 'w_dark', this.worldW, H, DARK_RES);
+    const c = tex.getContext();
+    c.setTransform(DARK_RES, 0, 0, DARK_RES, 0, 0);
+    c.globalCompositeOperation = 'source-over';
+    c.clearRect(0, 0, this.worldW, H);
+    const g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, 'rgba(8,5,10,0.15)');
+    g.addColorStop(1, 'rgba(8,5,10,0.72)');
+    c.fillStyle = g;
+    c.fillRect(0, 0, this.worldW, H);
+    c.globalCompositeOperation = 'destination-out';
+    for (const r of lit) {
+      const cx = r.x * TILE + (r.w * TILE) / 2;
+      const cy = r.y * TILE + (r.h * TILE) / 2;
+      const rad = Math.max(r.w, r.h) * TILE * 0.9 + 18;
+      const rg = c.createRadialGradient(cx, cy, 0, cx, cy, rad);
+      rg.addColorStop(0, 'rgba(0,0,0,0.95)');
+      rg.addColorStop(0.5, 'rgba(0,0,0,0.6)');
+      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = rg;
+      c.save();
+      c.translate(cx, cy);
+      c.scale(1, (r.h * TILE + 24) / (r.w * TILE + 24));
+      c.translate(-cx, -cy);
+      c.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+      c.restore();
     }
-    dark.draw(g);
-    g.destroy();
+    c.globalCompositeOperation = 'source-over';
+    tex.refresh();
     const light = lightTexture(this.scene, 'light64', 64);
     this.glowLayer.removeAll(true);
     for (const r of lit) {
+      if (r.type === 'corridor') continue;
       const { x, y } = this.cellLocal(r.x, r.y);
       const w = r.w * TILE;
       const h = r.h * TILE;
-      const cx = x + w / 2;
-      const cy = y - SKY_H + h / 2;
-      const sw = (w + 56) / 64;
-      const sh = (h + 48) / 64;
-      const img = this.scene.add.image(0, 0, light).setScale(sw, sh);
-      dark.erase(img, cx, cy);
-      img.destroy();
-      if (r.type !== 'corridor') {
-        const glow = this.scene.add.image(cx, y + h / 2, light).setScale(sw * 0.9, sh * 0.9).setTint(r.type === 'greenhouse' ? P.purple : 0xffc070).setAlpha(0.18).setBlendMode(Phaser.BlendModes.ADD);
-        this.glowLayer.add(glow);
-      }
+      const glow = this.scene.add.image(x + w / 2, y + h / 2, light).setScale((w + 50) / 64, (h + 40) / 64).setTint(0xffb860).setAlpha(0.22).setBlendMode(Phaser.BlendModes.ADD);
+      this.glowLayer.add(glow);
     }
   }
 
-  /** Portas entre salas vizinhas: passagem lateral ou alçapão. */
+  /** Portas entre salas vizinhas: porta de aço lateral ou alçapão com escada. */
   private drawDoors(run: RunState): void {
     const live = run.rooms.filter((r) => !r.collapsed);
     const sig = live.map((r) => `${r.id}${r.x}${r.y}`).join(',');
@@ -475,30 +429,33 @@ export class BunkerView {
         if (l.x + l.w === r.x) {
           const top = Math.max(l.y, r.y);
           const bot = Math.min(l.y + l.h, r.y + r.h);
-          if (bot <= top) continue;
+          // Uma porta por par, no nível do piso mais baixo.
+          if (bot <= top || bot !== Math.max(l.y + l.h, r.y + r.h)) continue;
           const x = r.x * TILE;
-          const floor = SKY_H + bot * TILE - 4;
-          g.fillStyle(P.ink);
-          g.fillRect(x - 4, floor - 12, 8, 12);
-          g.fillStyle(0x2a2226);
-          g.fillRect(x - 3, floor - 11, 6, 11);
-          g.fillStyle(P.rockLight);
-          g.fillRect(x - 4, floor - 12, 8, 1);
+          const floor = SKY_H + bot * TILE - FLOOR;
+          g.fillStyle(0x14101c);
+          g.fillRoundedRect(x - 3.4, floor - 13, 6.8, 13, { tl: 1.5, tr: 1.5, bl: 0, br: 0 });
+          g.fillStyle(0x2a2622);
+          g.fillRoundedRect(x - 2.6, floor - 12.2, 5.2, 12.2, { tl: 1, tr: 1, bl: 0, br: 0 });
+          g.fillStyle(0xffd27a, 0.12);
+          g.fillRect(x - 2.6, floor - 4, 5.2, 4);
           continue;
         }
-        const [t, d] = a.y < b.y ? [a, b] : [b, a];
-        if (t.y + t.h === d.y) {
-          const left = Math.max(t.x, d.x);
-          const right = Math.min(t.x + t.w, d.x + d.w);
+        const [tp, d] = a.y < b.y ? [a, b] : [b, a];
+        if (tp.y + tp.h === d.y && !(tp.type === 'corridor' && d.type === 'corridor')) {
+          const left = Math.max(tp.x, d.x);
+          const right = Math.min(tp.x + tp.w, d.x + d.w);
           if (right <= left) continue;
           const cx = ((left + right) / 2) * TILE;
           const y = SKY_H + d.y * TILE;
-          g.fillStyle(P.ink);
-          g.fillRect(cx - 5, y - 4, 10, 8);
-          g.fillStyle(0x2a2226);
-          g.fillRect(cx - 4, y - 4, 8, 8);
-          g.fillStyle(P.dirtLight);
-          for (let k = 0; k < 8; k += 3) g.fillRect(cx - 3, y - 4 + k, 6, 1);
+          g.fillStyle(0x14101c);
+          g.fillRect(cx - 4.5, y - 3.5, 9, 7);
+          g.fillStyle(0x221d1a);
+          g.fillRect(cx - 3.8, y - 3.5, 7.6, 7);
+          g.lineStyle(0.7, 0xb07a44);
+          g.lineBetween(cx - 2.6, y - 3.5, cx - 2.6, y + 3.5);
+          g.lineBetween(cx + 2.6, y - 3.5, cx + 2.6, y + 3.5);
+          for (let k = -2.5; k < 3.5; k += 2.4) g.lineBetween(cx - 2.6, y + k, cx + 2.6, y + k);
         }
       }
     }
@@ -538,49 +495,45 @@ export class BunkerView {
     const W = r.w * TILE;
     const H = r.h * TILE;
     const key = r.collapsed ? collapsedKey(sc, r.w, r.h) : roomKey(sc, r.type, r.w, r.h, r.equipment, isEntrance(r));
-    const img = sc.add.image(x, y, key).setOrigin(0, 0);
-    const cracks = sc.add.tileSprite(x, y, W, H, crackKey(sc, 0)).setOrigin(0, 0).setVisible(false);
-    const dark = sc.add.rectangle(x, y, W, H, P.ink, 0.6).setOrigin(0, 0).setVisible(false);
-    const icons = sc.add.container(x + 4, y + 6);
+    const img = sc.add.image(x, y, key).setOrigin(0, 0).setScale(1 / RES);
+    const cracks = sc.add.image(x, y, crackTex(sc, r.w, r.h, 1)).setOrigin(0, 0).setScale(1 / RES).setVisible(false);
+    const dark = sc.add.rectangle(x + 0.5, y + 0.5, W - 1, H - 1, 0x07050a, 0.62).setOrigin(0, 0).setVisible(false);
+    const icons = sc.add.container(x + W - 4, y + CEIL + 2);
     const v: RoomVisual = { sig, img, dark, cracks, icons, iconSig: '', leds: [], baseX: x };
     this.roomLayer.add([img, cracks]);
     if (!r.collapsed) {
+      const fy = H - FLOOR;
       if (r.type === 'vent') {
         // Mesma geometria da carcaça desenhada em rooms.ts.
-        const fy = H - 4;
-        const r0 = Math.min(W, fy - 4) / 2 - 2;
-        const size = Math.max(5, Math.round((r0 - 2) * 2 + 1));
-        v.fan = sc.add.image(x + Math.floor(W / 2) + 0.5, y + Math.floor((4 + fy) / 2) + 1.5, fanKey(sc, size));
+        v.fan = sc.add.image(x + W / 2, y + (CEIL + fy) / 2 + 0.5, fanKey(sc, 6)).setScale(1 / RES);
         this.roomLayer.add(v.fan);
       }
       if (r.type === 'panel') {
-        for (let i = 0; i < 4; i++) {
-          const led = sc.add.image(x + 7 + i * 6, y + H - 8, i % 2 ? 'fx_ledred' : 'fx_led').setOrigin(0, 0);
+        for (let i = 0; i < Math.floor((W - 12) / 4); i++) {
+          const led = sc.add.image(x + 7 + i * 4, y + fy - 2.2, i % 3 === 1 ? 'fx_ledred' : 'fx_led').setOrigin(0.5).setScale(0.8);
           v.leds.push(led);
           this.roomLayer.add(led);
         }
       }
       if (r.type === 'reservoir') {
-        v.water = sc.add.rectangle(x + 5, y + H - 5, W - 10, 1, P.blue, 0.8).setOrigin(0, 1);
+        v.water = sc.add.rectangle(x + 5.6, y + fy - 0.6, W - 14.2, 1, 0x3a8ad8, 0.55).setOrigin(0, 1);
         this.roomLayer.add(v.water);
       }
-      if (r.type === 'greenhouse') {
-        v.glow = sc.add.rectangle(x, y, W, H, P.purple, 0.12).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD);
-        this.roomLayer.add(v.glow);
-      }
       if (isEntrance(r)) {
-        v.hatch = sc.add.image(x - 2, y - 8, hatchKey(sc, true)).setOrigin(0, 0);
+        v.hatch = sc.add.image(x + TILE / 2, SKY_H + 1, towerKey(sc, true, false)).setOrigin(0.5, 1).setScale(1 / RES);
         this.roomLayer.add(v.hatch);
       }
+      if (r.type !== 'corridor') v.label = roomLabel(sc, x + COL_PAD, y + CEIL + 1.2, r.type, W - COL_PAD * 2 - 2);
+      if (v.label) this.roomLayer.add(v.label);
       if (r.type === 'generator') {
-        v.smoke = sc.add.particles(x + W - 7, y - 2, 'fx_smoke', {
+        v.smoke = sc.add.particles(x + W - 9, y + CEIL + 2, 'fx_smoke', {
           lifespan: 1400, speedY: { min: -14, max: -8 }, speedX: { min: -3, max: 3 }, scale: { start: 0.6, end: 1.4 },
           alpha: { start: 0.7, end: 0 }, frequency: 450, emitting: false,
         });
         this.fxLayer.add(v.smoke);
       }
       if (r.type === 'kitchen') {
-        v.steam = sc.add.particles(x + 10, y + H - 19, 'fx_smoke', {
+        v.steam = sc.add.particles(x + 8.5, y + H - 16, 'fx_smoke', {
           lifespan: 1000, speedY: { min: -12, max: -6 }, scale: { start: 0.3, end: 0.9 }, alpha: { start: 0.5, end: 0 }, frequency: 600, emitting: false,
         });
         this.fxLayer.add(v.steam);
@@ -608,7 +561,7 @@ export class BunkerView {
   }
 
   private destroyRoom(v: RoomVisual): void {
-    for (const o of [v.img, v.dark, v.glow, v.cracks, v.icons, v.fan, v.water, v.hatch, v.smoke, v.dust, v.wind, v.bugs, v.haze, v.steam, ...v.leds]) o?.destroy();
+    for (const o of [v.img, v.dark, v.glow, v.label, v.cracks, v.icons, v.fan, v.water, v.hatch, v.smoke, v.dust, v.wind, v.bugs, v.haze, v.steam, ...v.leds]) o?.destroy();
   }
 
   private updateRoom(run: RunState, r: Room, v: RoomVisual): void {
@@ -625,7 +578,7 @@ export class BunkerView {
     v.dark.setVisible(unpowered || genStopped);
     const crackLevel = r.unstable && !surviving ? 2 : r.integrity < BALANCE.structure.dustBelow ? 2 : r.integrity < BALANCE.structure.cracksBelow ? 1 : -1;
     v.cracks.setVisible(crackLevel >= 0);
-    if (crackLevel >= 0) v.cracks.setTexture(crackKey(this.scene, crackLevel));
+    if (crackLevel >= 0) v.cracks.setTexture(crackTex(this.scene, r.w, r.h, crackLevel));
     const sealed = this.sealed.get(r.id) ?? true;
     const leaking = surviving ? !sealed : false;
     setEmit(v.dust, crackLevel >= 2 || (r.unstable && !surviving));
@@ -638,10 +591,10 @@ export class BunkerView {
     if (v.glow) v.glow.setVisible(!surviving || r.powered);
     if (v.water) {
       const frac = surviving ? Math.min(1, run.res.water / Math.max(1, waterCapacity(run))) : 0.9;
-      v.water.height = Math.max(1, Math.round((r.h * TILE - 12) * frac));
-      v.water.fillColor = run.waterContaminated ? P.green : P.blue;
+      v.water.setSize(v.water.width, Math.max(0.5, (r.h * TILE - FLOOR - 6.6) * frac));
+      v.water.fillColor = run.waterContaminated ? 0x7aa83a : 0x3a8ad8;
     }
-    if (v.hatch) v.hatch.setTexture(hatchKey(this.scene, run.hatchOpen));
+    if (v.hatch) v.hatch.setTexture(towerKey(this.scene, run.hatchOpen, run.phase === 'countdown'));
 
     // Ícones de estado: formas, não só cores (modo daltônico).
     const icons: string[] = [];
@@ -657,8 +610,9 @@ export class BunkerView {
       v.iconSig = sig;
       v.icons.removeAll(true);
       icons.forEach((k, i) => {
-        const bg = this.scene.add.rectangle(i * 11 - 1, -1, 12, 12, P.ink, 0.8).setOrigin(0, 0);
-        v.icons.add([bg, this.scene.add.image(i * 11, 0, iconKey(this.scene, k)).setOrigin(0, 0)]);
+        const bx = -(i + 1) * 8;
+        const bg = this.scene.add.circle(bx + 3.5, 3.5, 3.9, 0x0e1320, 0.9).setStrokeStyle(0.5, 0xe0573a);
+        v.icons.add([bg, this.scene.add.image(bx + 3.5, 3.5, iconKey(this.scene, k)).setScale(0.6 / 4)]);
       });
     }
   }
@@ -692,6 +646,7 @@ export class BunkerView {
       if (!alive.has(id)) {
         v.sprite.destroy();
         v.shadow.destroy();
+        v.mood?.destroy();
         v.bubble?.destroy();
         this.people.delete(id);
       }
@@ -702,8 +657,8 @@ export class BunkerView {
       if (!v) {
         const pos = this.spotIn(loc, p.id);
         v = {
-          sprite: this.scene.add.image(pos.x, pos.y + 1, personKey(this.scene, p.look, p.archetype, 'ok', 0)).setOrigin(0.5, 1),
-          shadow: this.scene.add.image(pos.x, pos.y, 'fx_shadow').setOrigin(0.5, 0.5),
+          sprite: this.scene.add.image(pos.x, pos.y + 0.6, personKey(this.scene, p.look, p.archetype, 'ok', 0)).setOrigin(0.5, 1).setScale(1 / RES),
+          shadow: this.scene.add.image(pos.x, pos.y, shadowKey(this.scene)).setOrigin(0.5, 0.5).setScale(1 / RES),
           roomId: loc?.id ?? null, targetX: pos.x, nextMove: 0, frameT: 0, frame: 0, gestureUntil: 0, bubbleUntil: 0,
         };
         this.peopleLayer.add([v.shadow, v.sprite]);
@@ -712,7 +667,7 @@ export class BunkerView {
       if ((loc?.id ?? null) !== v.roomId) {
         // Mudou de sala: aparece na nova (o bunker é pequeno, ninguém se perde no caminho).
         const pos = this.spotIn(loc, p.id);
-        v.sprite.setPosition(pos.x, pos.y + 1);
+        v.sprite.setPosition(pos.x, pos.y + 0.6);
         v.targetX = pos.x;
         v.roomId = loc?.id ?? null;
       }
@@ -724,7 +679,7 @@ export class BunkerView {
     const { x, y } = this.cellLocal(r.x, r.y);
     const W = r.w * TILE;
     const span = Math.max(1, W - 10);
-    return { x: x + 5 + ((seed * 37) % span), y: y + r.h * TILE - 4 };
+    return { x: x + 6 + ((seed * 37) % Math.max(1, span - 2)), y: y + r.h * TILE - FLOOR };
   }
 
   private expression(run: RunState, p: Person): Expression {
@@ -742,9 +697,17 @@ export class BunkerView {
     if (!v) return;
     v.bubble?.destroy();
     const t = this.scene.add.text(0, 0, text, {
-      fontFamily: FONT, fontSize: `${fontSize(12)}px`, color: '#14101c', wordWrap: { width: 110 }, resolution: UI_ZOOM * 2,
+      fontFamily: FONT, fontSize: `${fontSize(11)}px`, fontStyle: '500', color: '#14101c', wordWrap: { width: 120 }, resolution: UI_ZOOM * 3,
     }).setOrigin(0.5, 1);
-    const bg = this.scene.add.rectangle(0, 2, t.width + 6, t.height + 4, P.paper).setOrigin(0.5, 1).setStrokeStyle(1, P.ink);
+    const bg = this.scene.add.graphics();
+    bg.fillStyle(0x000000, 0.3);
+    bg.fillRoundedRect(-t.width / 2 - 4, -t.height - 3, t.width + 8, t.height + 6, 4);
+    bg.fillStyle(0xffffff);
+    bg.lineStyle(0.8, 0x14101c);
+    bg.fillRoundedRect(-t.width / 2 - 4, -t.height - 4, t.width + 8, t.height + 6, 4);
+    bg.strokeRoundedRect(-t.width / 2 - 4, -t.height - 4, t.width + 8, t.height + 6, 4);
+    bg.fillTriangle(-3, 1.6, 3, 1.6, -1, 5);
+    t.setY(-1);
     const c = this.scene.add.container(v.sprite.x, v.sprite.y - PERSON_H - 2, [bg, t]).setScale(1 / Math.max(1, this.zoom * 0.8));
     this.fxLayer.add(c);
     v.bubble = c;
@@ -769,14 +732,6 @@ export class BunkerView {
     if (!run) return;
     const dt = delta / 1000;
     const motion = !store.settings.reduceMotion;
-    // Nuvens andando antes da explosão.
-    if (run.phase === 'build') {
-      for (const c of this.clouds) {
-        c.x += dt * 3;
-        if (c.x > this.worldW + 20) c.x = -c.w - 20;
-      }
-      this.drawSky(run);
-    }
     for (const r of run.rooms) {
       const v = this.rooms.get(r.id);
       if (!v || r.collapsed) continue;
@@ -814,7 +769,16 @@ export class BunkerView {
       } else v.frame = 0;
       const frame = time < v.gestureUntil ? 2 : walking ? v.frame : 0;
       v.sprite.setTexture(personKey(this.scene, p.look, p.archetype, this.expression(run, p), frame));
-      v.shadow.setPosition(Math.round(v.sprite.x), v.sprite.y - 1);
+      v.shadow.setPosition(v.sprite.x, v.sprite.y - 0.6);
+      // Balão de humor acima da cabeça (some quando há fala).
+      const surviving = run.phase === 'survival' || run.phase === 'ended';
+      const hour = Math.floor((run.minute % 1440) / 60);
+      const kind = !surviving ? null : p.health === 'doente' ? 'doente' : p.morale < 30 ? 'triste' : (hour >= 22 || hour < 6) && loc?.type === 'dorm' ? 'zz' : p.morale >= 75 ? 'feliz' : null;
+      if (kind && !v.bubble) {
+        v.mood ??= this.peopleLayer.scene.add.image(0, 0, bubbleKey(this.scene, kind)).setOrigin(0.5, 1).setScale(1 / RES);
+        if (!v.mood.parentContainer) this.peopleLayer.add(v.mood);
+        v.mood.setTexture(bubbleKey(this.scene, kind)).setVisible(true).setPosition(v.sprite.x + 3, v.sprite.y - PERSON_H + 1 + Math.sin(time / 300 + p.id) * 0.4);
+      } else v.mood?.setVisible(false);
       if (v.bubble) {
         v.bubble.setPosition(v.sprite.x, v.sprite.y - PERSON_H - 2);
         if (time > v.bubbleUntil) {
@@ -875,65 +839,57 @@ function setEmit(e: Phaser.GameObjects.Particles.ParticleEmitter | undefined, on
   else if (!on && e.emitting) e.stop();
 }
 
-function cloud(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number): void {
-  g.fillStyle(0xb8cde0);
-  g.fillRect(x + 2, y + 3, w - 2, 3);
-  g.fillStyle(P.white);
-  g.fillRect(x, y + 2, w, 3);
-  g.fillRect(x + 4, y, w * 0.45, 3);
-  g.fillRect(x + w * 0.45, y - 2, w * 0.35, 4);
-}
+const COL_PAD = 4;
 
-function hills(g: Phaser.GameObjects.Graphics, W: number, base: number, color: number, amp: number, freq: number): void {
-  g.fillStyle(color);
-  for (let x = -40; x < W + 40; x += 2) {
-    const h = Math.round(amp * (0.6 + 0.4 * Math.sin(x * freq) + 0.25 * Math.sin(x * freq * 2.7 + 1)));
-    g.fillRect(x, base - h, 2, h + 20);
-  }
-}
-
-function skyline(g: Phaser.GameObjects.Graphics, W: number, base: number, color: number, seed: number, ruined = false): void {
-  g.fillStyle(color);
-  let x = -20;
-  let k = seed;
-  while (x < W + 20) {
-    k = (k * 1103515245 + 12345) & 0x7fffffff;
-    const w = 6 + (k % 9);
-    const h = 4 + ((k >> 4) % 12);
-    g.fillRect(x, base - h, w, h + 10);
-    if (ruined && k % 3 === 0) {
-      g.fillRect(x + 1, base - h - 3, 1, 3);
-      g.fillRect(x + w - 2, base - h - 2, 2, 2);
+/** Rachaduras em alta resolução, do tamanho da sala. */
+function crackTex(scene: Phaser.Scene, wT: number, hT: number, level: number): string {
+  const W = wT * TILE;
+  const H = hT * TILE;
+  return hdTexture(scene, `crk_${wT}_${hT}_${level}`, W, H, (c) => {
+    const n = 2 + level * 2;
+    let seed = wT * 31 + hT * 7 + level;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) % 1000) / 1000;
+    for (let i = 0; i < n; i++) {
+      let x = 4 + rnd() * (W - 8);
+      let y = CEIL;
+      const pts: [number, number][] = [[x, y]];
+      while (y < H * (0.4 + rnd() * 0.4)) {
+        x += (rnd() - 0.5) * 5;
+        y += 2 + rnd() * 3;
+        pts.push([x, y]);
+      }
+      line(c, pts, 0x14101c, 0.7 + level * 0.2, 0.85);
+      line(c, pts.map(([px, py]) => [px + 0.5, py] as [number, number]), 0xffffff, 0.3, 0.15);
     }
-    x += w + 1 + ((k >> 8) % 4);
-  }
+  });
 }
 
-function house(g: Phaser.GameObjects.Graphics, x: number, base: number): void {
-  g.fillStyle(P.ink);
-  g.fillRect(x - 1, base - 15, 26, 16);
-  g.fillStyle(P.paper);
-  g.fillRect(x, base - 14, 24, 14);
-  g.fillStyle(P.redDark);
-  g.fillTriangle(x - 4, base - 14, x + 12, base - 26, x + 28, base - 14);
-  g.fillStyle(P.red);
-  g.fillTriangle(x - 1, base - 15, x + 12, base - 24, x + 25, base - 15);
-  g.fillStyle(P.dirt);
-  g.fillRect(x + 4, base - 9, 5, 9);
-  g.fillStyle(P.skyLight);
-  g.fillRect(x + 14, base - 11, 6, 5);
-  g.fillStyle(P.ink);
-  g.fillRect(x + 16, base - 11, 1, 5);
+/** Torre de concreto da entrada (aberta/fechada, com alarme na contagem). */
+function towerKey(scene: Phaser.Scene, open: boolean, alarm: boolean): string {
+  return hdTexture(scene, `tower_${open ? 1 : 0}_${alarm ? 1 : 0}`, 30, 42, (c) => {
+    c.translate(1, 2);
+    drawTower(c, open, alarm);
+  });
 }
 
-function tree(g: Phaser.GameObjects.Graphics, x: number, base: number, small = false): void {
-  const s = small ? 0.7 : 1;
-  g.fillStyle(P.dirtDark);
-  g.fillRect(x - 1, base - 10 * s, 3, 10 * s);
-  g.fillStyle(P.greenDark);
-  g.fillCircle(x, base - 14 * s, 8 * s);
-  g.fillStyle(P.grass);
-  g.fillCircle(x - 1, base - 15 * s, 6 * s);
-  g.fillStyle(P.grassLight);
-  g.fillCircle(x - 3, base - 17 * s, 2 * s);
+function shadowKey(scene: Phaser.Scene): string {
+  return hdTexture(scene, 'ch_shadow', 12, 3, (c) => ellipse(c, 6, 1.5, 5.5, 1.3, css(0x000000, 0.4)));
 }
+
+/** Placa com ícone e nome da sala, no canto de cima. */
+function roomLabel(scene: Phaser.Scene, x: number, y: number, type: string, maxW: number): Phaser.GameObjects.Container {
+  const text = scene.add.text(0, 0, t(`room.label.${type}`), {
+    fontFamily: FONT, fontSize: '22px', fontStyle: '600', color: '#f2f0ea', resolution: 2,
+  }).setOrigin(0, 0.5);
+  text.setScale(Math.min(0.17, (maxW - 9) / text.width));
+  const w = text.displayWidth + 9;
+  const g = scene.add.graphics();
+  g.fillStyle(0x0e1320, 0.85);
+  g.fillRoundedRect(0, -2.6, w, 5.2, 1.2);
+  g.lineStyle(0.35, 0x3b4766);
+  g.strokeRoundedRect(0, -2.6, w, 5.2, 1.2);
+  const icon = scene.add.image(2.6, 0, iconKey(scene, ROOM_ICON[type] ?? 'alert')).setScale(0.42 / 4);
+  text.setX(5.6);
+  return scene.add.container(x, y + 2.6, [g, icon, text]);
+}
+

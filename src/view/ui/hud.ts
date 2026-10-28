@@ -81,7 +81,7 @@ export class TopBar {
       const ic: Record<string, string> = { food: 'food', water: 'water', air: 'wind', power: 'bolt', morale: 'meh' };
       keys.forEach((k, i) => {
         const x = 318 + i * 52;
-        const icon = scene.add.image(x + 8, 18, iconKey(scene, ic[k])).setScale(1.4).setDepth(51);
+        const icon = scene.add.image(x + 8, 18, iconKey(scene, ic[k])).setScale(1.7 / 4).setDepth(51);
         const pips: Phaser.GameObjects.Rectangle[] = [];
         scene.add.rectangle(x + 17, 13, 30, 10, P.ink).setOrigin(0, 0).setDepth(51);
         for (let j = 0; j < 4; j++) pips.push(scene.add.rectangle(x + 18 + j * 7, 22, 6, 8, 0x2a2238).setOrigin(0, 1).setDepth(51));
@@ -93,7 +93,7 @@ export class TopBar {
       const ic = ['earth', 'gear'];
       ic.forEach((k, i) => {
         const x = 330 + i * 70;
-        scene.add.image(x + 8, 18, iconKey(scene, k)).setScale(1.6).setDepth(51);
+        scene.add.image(x + 8, 18, iconKey(scene, k)).setScale(1.8 / 4).setDepth(51);
         this.counts.push(txt(scene, x + 20, 9, '', 18).setDepth(51));
       });
     }

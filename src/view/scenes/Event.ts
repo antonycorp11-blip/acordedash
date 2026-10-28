@@ -107,14 +107,14 @@ export class EventScene extends Phaser.Scene {
   /** Retrato de pessoa grande, respirando. `x, y`: centro do topo da moldura. */
   private person(look: number, arch: Person['archetype'], expr: 'ok' | 'medo' | 'raiva' | 'feliz'): (x: number, y: number) => void {
     return (x, y) => {
-      const img = this.add.image(x, y + 96, personKey(this, look, arch, expr, 2)).setScale(5).setOrigin(0.5, 1).setDepth(2);
+      const img = this.add.image(x, y + 96, personKey(this, look, arch, expr, 2)).setScale(5 * 0.21).setOrigin(0.5, 1).setDepth(2);
       if (!store.settings.reduceMotion) this.tweens.add({ targets: img, y: y + 94, duration: 600, yoyo: true, repeat: -1 });
     };
   }
 
   private icon(name: string): (x: number, y: number) => void {
     return (x, y) => {
-      this.add.image(x, y + 50, iconKey(this, name)).setScale(5).setDepth(2);
+      this.add.image(x, y + 50, iconKey(this, name)).setScale(5 / 4).setDepth(2);
     };
   }
 

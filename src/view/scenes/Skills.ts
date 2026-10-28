@@ -59,7 +59,7 @@ export class Skills extends Phaser.Scene {
       this.marks.get(id)?.destroy();
       const icon = st === 'comprada' ? 'check' : st === 'ramo_fechado' || st === 'excluida' ? 'lock' : null;
       if (icon) {
-        const img = this.add.image(b.w - 8, b.h / 2, iconKey(this, icon));
+        const img = this.add.image(b.w - 8, b.h / 2, iconKey(this, icon)).setScale(1 / 4);
         b.add(img);
         this.marks.set(id, img);
       }

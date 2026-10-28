@@ -25,7 +25,7 @@ import { store } from './view/store';
 
 async function loadFonts(): Promise<void> {
   if (!('fonts' in document)) return;
-  const wait = Promise.all([document.fonts.load("16px 'VT323'"), document.fonts.load("12px 'Pixelify Sans'"), document.fonts.load("bold 12px 'Pixelify Sans'")]);
+  const wait = Promise.all([document.fonts.load("16px 'Fredoka'"), document.fonts.load("600 16px 'Fredoka'"), document.fonts.load("16px 'Lilita One'")]);
   // Sem rede, segue com a fonte do sistema depois de um instante.
   await Promise.race([wait, new Promise((r) => setTimeout(r, 2500))]).catch(() => undefined);
 }
@@ -36,11 +36,12 @@ async function start(): Promise<void> {
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
-    // Desenhado em 640×360 e renderizado em 2× (ver UI_ZOOM): texto e pixels nítidos.
+    // Desenhado em 640×360 e renderizado em 2× (ver UI_ZOOM); a arte é vetorial em alta resolução.
     width: 1280,
     height: 720,
-    pixelArt: true,
-    roundPixels: true,
+    pixelArt: false,
+    antialias: true,
+    roundPixels: false,
     backgroundColor: '#14101c',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     input: { activePointers: 3 },

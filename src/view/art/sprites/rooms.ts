@@ -1,364 +1,339 @@
-// Interiores das salas, gerados por tipo, tamanho e equipamento. Cada sala tem
-// casca de concreto (teto, piso, paredes), parede de fundo com gradiente, luz
-// de teto e móveis próprios.
+// Salas em alta definição: moldura de vigas de aço aparafusadas, mãos-francesas
+// de madeira, parede de concreto iluminada, lâmpadas penduradas e mobília
+// própria de cada tipo. Tudo em unidades do mundo (tile = 16).
 
 import Phaser from 'phaser';
 import type { EquipmentId, RoomType } from '../../../core/state';
-import { P, shade } from '../palette';
-import { makeTexture, type Pix } from '../pixel';
-import { TILE } from './tiles';
+import { box, circle, css, ellipse, glow, hdTexture, hgrad, light, line, poly, rr, seeded, stone, vgrad, type Ctx } from '../hd';
+
+export const TILE = 16;
+const INK = 0x14101c;
+export const COL = 2.4;
+export const CEIL = 2.8;
+export const FLOOR = 3;
 
 const WALL: Record<RoomType, number> = {
-  dorm: 0x5a4a6e, generator: 0x45485a, panel: 0x2e3346, vent: 0x4a5560,
-  greenhouse: 0x2f5a3a, kitchen: 0x8a7a62, reservoir: 0x2a4470, corridor: 0x3a3238,
+  dorm: 0x8a7a62, generator: 0x76736c, panel: 0x6e7480, vent: 0x748078,
+  greenhouse: 0x728262, kitchen: 0x947e5e, reservoir: 0x6a7a8e, corridor: 0x4a4440,
 };
 
 export function roomKey(scene: Phaser.Scene, type: RoomType, wTiles: number, hTiles: number, eq: EquipmentId | null, entrance = false): string {
-  const key = `r2_${type}_${wTiles}x${hTiles}_${eq ?? 'x'}_${entrance ? 1 : 0}`;
+  const key = `hd_${type}_${wTiles}x${hTiles}_${eq ?? 'x'}_${entrance ? 1 : 0}`;
   const W = wTiles * TILE;
   const H = hTiles * TILE;
-  return makeTexture(scene, key, W, H, (p) => {
-    if (type === 'corridor') corridor(p, W, H, eq, entrance);
+  return hdTexture(scene, key, W, H, (c) => {
+    if (type === 'corridor') corridor(c, W, H, eq, entrance);
     else {
-      shell(p, W, H, WALL[type], type !== 'greenhouse');
-      DRAW[type](p, W, H, eq);
+      wall(c, W, H, WALL[type]);
+      DRAW[type](c, W, H, eq);
+      frame(c, W, H);
+      lamps(c, W, type === 'greenhouse' ? 0 : W > 40 ? 2 : 1, H);
     }
   });
 }
 
-/** Linha do piso (y do topo do piso). */
-const floorY = (H: number) => H - 4;
+const floorY = (H: number) => H - FLOOR;
 
-function shell(p: Pix, W: number, H: number, wall: number, lamp: boolean): void {
-  // Parede de fundo com gradiente vertical e emendas de painel.
-  const top = 4;
-  const bottom = floorY(H);
-  const span = bottom - top;
-  for (let y = top; y < bottom; y++) {
-    const f = 0.72 + 0.28 * Math.min(1, (y - top) / (span * 0.6));
-    p.hline(3, y, W - 6, shade(wall, f));
-  }
-  for (let x = 3 + 16; x < W - 4; x += 16) {
-    p.vline(x, top, span, shade(wall, 0.8));
-    p.vline(x + 1, top, span, shade(wall, 1.1));
-  }
-  p.rect(3, bottom - 2, W - 6, 2, shade(wall, 0.6));
-  // Teto de concreto com rebites.
-  p.rect(0, 0, W, 4, P.ink);
-  p.rect(1, 1, W - 2, 3, P.rock);
-  p.hline(1, 1, W - 2, P.rockLight);
-  for (let x = 4; x < W - 3; x += 8) p.px(x, 2, P.rockDark);
-  p.hline(3, 4, W - 6, shade(wall, 0.5));
-  // Piso.
-  p.rect(0, bottom, W, H - bottom, P.ink);
-  p.rect(1, bottom, W - 2, 3, P.rockDark);
-  p.hline(1, bottom, W - 2, P.rockLight);
-  // Paredes laterais.
-  p.rect(0, 0, 1, H, P.ink);
-  p.rect(W - 1, 0, 1, H, P.ink);
-  p.rect(1, 1, 2, bottom - 1, P.rock);
-  p.vline(1, 1, bottom - 1, P.rockLight);
-  p.rect(W - 3, 1, 2, bottom - 1, P.rock);
-  p.vline(W - 2, 1, bottom - 1, P.rockDark);
-  if (lamp) ceilingLamp(p, Math.floor(W / 2), bottom);
+function wall(c: Ctx, W: number, H: number, base: number): void {
+  c.fillStyle = vgrad(c, 0, H, [[0, light(base, -0.3)], [0.35, base], [0.8, light(base, -0.05)], [1, light(base, -0.35)]]);
+  c.fillRect(0, 0, W, H);
+  // Luz quente no centro da parede.
+  glow(c, W / 2, H * 0.45, Math.max(W, H) * 0.6, 0xffc070, 0.22);
+  // Painéis de concreto e manchas.
+  for (let x = 12; x < W; x += 12) line(c, [[x, CEIL], [x, floorY(H)]], light(base, -0.3), 0.35, 0.7);
+  line(c, [[0, H * 0.55], [W, H * 0.55]], light(base, -0.25), 0.3, 0.5);
+  const r = seeded(W * 13 + H);
+  for (let i = 0; i < W / 3; i++) ellipse(c, r() * W, CEIL + r() * (H - CEIL - FLOOR), 0.8 + r() * 2, 0.5 + r(), css(light(base, r() < 0.5 ? -0.2 : 0.12), 0.35));
+  // Rodapé escuro.
+  c.fillStyle = css(0x000000, 0.25);
+  c.fillRect(0, floorY(H) - 2, W, 2);
 }
 
-/** Luminária com cone de luz quente até o chão. */
-function ceilingLamp(p: Pix, cx: number, bottom: number): void {
-  p.rect(cx - 3, 4, 6, 2, P.ink);
-  p.rect(cx - 2, 4, 4, 1, P.rockLight);
-  p.rect(cx - 2, 6, 4, 1, P.yellow);
-  for (let y = 7; y < bottom; y++) {
-    const half = 2 + Math.floor((y - 7) * 0.6);
-    p.rect(cx - half, y, half * 2, 1, P.yellow, 0.07);
+function steel(c: Ctx, x: number, y: number, w: number, h: number, horizontal: boolean): void {
+  const g = horizontal
+    ? vgrad(c, y, y + h, [[0, 0x7a808a], [0.3, 0x4e535c], [1, 0x2e3238]])
+    : hgrad(c, x, x + w, [[0, 0x6a707a], [0.4, 0x4e535c], [1, 0x2e3238]]);
+  box(c, x, y, w, h, g, 0.3, INK, 0.5);
+}
+
+function plate(c: Ctx, x: number, y: number, s: number): void {
+  box(c, x, y, s, s, vgrad(c, y, y + s, [[0, 0x6a707a], [1, 0x3a3e46]]), 0.4, INK, 0.4);
+  const d = s * 0.22;
+  for (const [px, py] of [[x + d, y + d], [x + s - d, y + d], [x + d, y + s - d], [x + s - d, y + s - d]]) circle(c, px, py, 0.35, 0x9aa0aa, null);
+}
+
+function brace(c: Ctx, x: number, y: number, dir: 1 | -1): void {
+  const len = 6;
+  poly(c, [[x, y], [x + dir * 1.6, y], [x + dir * (len + 1.6), y + len], [x + dir * len, y + len + 0.2]], vgrad(c, y, y + len, [[0, 0x8a5e36], [1, 0x5e3e22]]), INK, 0.4);
+}
+
+function frame(c: Ctx, W: number, H: number): void {
+  steel(c, 0, 0, COL, H, false);
+  steel(c, W - COL, 0, COL, H, false);
+  steel(c, 0, 0, W, CEIL, true);
+  steel(c, 0, floorY(H), W, FLOOR, true);
+  // Chapa xadrez do piso.
+  for (let x = 1; x < W - 1; x += 2.2) line(c, [[x, floorY(H) + 1.1], [x + 0.9, floorY(H) + 0.6]], 0x8a909a, 0.25, 0.6);
+  brace(c, COL, CEIL, 1);
+  brace(c, W - COL, CEIL, -1);
+  plate(c, -0.3, -0.3, 3.6);
+  plate(c, W - 3.3, -0.3, 3.6);
+  plate(c, -0.3, H - 3.6, 3.6);
+  plate(c, W - 3.3, H - 3.6, 3.6);
+  for (let x = 16; x < W - 8; x += 16) plate(c, x - 1.6, -0.3, 3.2);
+}
+
+function lamps(c: Ctx, W: number, n: number, H: number): void {
+  for (let i = 0; i < n; i++) {
+    const x = n === 1 ? W / 2 : W * (0.3 + 0.4 * i);
+    // Cone de luz quente.
+    const g = c.createLinearGradient(0, CEIL, 0, floorY(H));
+    g.addColorStop(0, css(0xffd27a, 0.32));
+    g.addColorStop(1, css(0xffd27a, 0));
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(x - 1.5, CEIL + 3);
+    c.lineTo(x + 1.5, CEIL + 3);
+    c.lineTo(x + 11, floorY(H));
+    c.lineTo(x - 11, floorY(H));
+    c.closePath();
+    c.fill();
+    line(c, [[x, CEIL], [x, CEIL + 2]], 0x1a1614, 0.4);
+    box(c, x - 1.2, CEIL + 1.6, 2.4, 0.9, 0x3a3632, 0.3, null);
+    glow(c, x, CEIL + 3.2, 6, 0xffd27a, 0.6);
+    circle(c, x, CEIL + 3.2, 1.1, 0xfff2c0, 0x8a6a2a, 0.25);
   }
 }
 
-type Drawer = (p: Pix, W: number, H: number, eq: EquipmentId | null) => void;
+type Drawer = (c: Ctx, W: number, H: number, eq: EquipmentId | null) => void;
 
 const DRAW: Record<Exclude<RoomType, 'corridor'>, Drawer> = {
-  dorm: (p, W, H, eq) => {
+  dorm: (c, W, H, eq) => {
     const fy = floorY(H);
-    // Pôster e prateleira de livros.
-    p.rect(6, 8, 9, 8, P.ink);
-    p.rect(7, 9, 7, 6, P.paper);
-    p.rect(8, 10, 2, 4, P.red);
-    p.rect(11, 11, 2, 3, P.blue);
-    p.rect(W - 18, 10, 13, 1, P.dirtLight);
-    const books = [P.red, P.teal, P.yellow, P.purple, P.green, P.orange];
-    books.forEach((c, i) => p.rect(W - 17 + i * 2, 6 + (i % 2), 1, 4 - (i % 2), c));
-    // Tapete.
-    p.rect(14, fy - 1, W - 28, 1, P.redDark);
-    p.rect(16, fy - 1, W - 32, 1, P.red);
-    const blankets = [P.red, P.blue, P.green, P.purple, P.orange, P.teal];
-    const beds = Math.max(1, Math.floor((W - 8) / 20));
+    // Pôster e armário.
+    box(c, 6, 7, 6, 7.5, 0xe8dcc0, 0.3, INK, 0.35);
+    box(c, 7, 8, 4, 3, 0x4a7ad0, 0.2, null);
+    circle(c, 9, 12.5, 1, 0xe0573a, null);
+    box(c, W - 9, fy - 15, 6, 15, vgrad(c, fy - 15, fy, [[0, 0x6a7a7a], [1, 0x4a5858]]), 0.5, INK, 0.45);
+    for (let y = fy - 13; y < fy - 10; y += 1) line(c, [[W - 8, y], [W - 4, y]], 0x2a3434, 0.3);
+    circle(c, W - 4.4, fy - 7, 0.4, 0xd0d0d0, null);
+    const beds = Math.max(1, Math.floor((W - 14) / 17));
     for (let i = 0; i < beds; i++) {
-      const bx = 5 + i * 20 + (beds === 1 ? 8 : 0);
-      bed(p, bx, fy - 7, blankets[i % blankets.length]);
-      if (eq === 'beliche') {
-        bed(p, bx, fy - 16, blankets[(i + 3) % blankets.length]);
-        p.vline(bx, fy - 17, 17, P.dirt);
-        p.vline(bx + 15, fy - 17, 17, P.dirt);
-      }
+      const bx = 4 + i * 17;
+      bed(c, bx, fy, i);
+      if (eq === 'beliche') bed(c, bx, fy - 9, i + 3, true);
     }
+    box(c, W - 14, fy - 3.5, 4, 3.5, 0x8a6a40, 0.3, INK, 0.35);
   },
-  generator: (p, W, H, eq) => {
+  generator: (c, W, H, eq) => {
     const fy = floorY(H);
-    // Faixa de perigo no chão.
-    for (let x = 3; x < W - 3; x += 4) {
-      p.rect(x, fy - 1, 2, 1, P.yellow);
-      p.rect(x + 2, fy - 1, 2, 1, P.ink);
-    }
-    // Bloco do motor.
+    // Faixa de perigo no piso.
+    c.save();
+    rr(c, 4, fy - 1.4, W - 8, 1.4, 0.2);
+    c.clip();
+    for (let x = 2; x < W; x += 2.4) poly(c, [[x, fy], [x + 1.2, fy - 1.4], [x + 2.4, fy - 1.4], [x + 1.2, fy]], 0xf4c84a, null);
+    c.restore();
+    // Canos até o teto.
+    box(c, W - 10, CEIL, 2.2, fy - 14 - CEIL, hgrad(c, W - 10, W - 7.8, [[0, 0x8a909a], [1, 0x4a4e56]]), 0.3, INK, 0.35);
+    box(c, 7, CEIL, 1.6, 6, 0x7a3a2a, 0.3, INK, 0.35);
+    // Motor.
     const mx = 5;
-    const mw = W - 17;
-    const my = fy - 17;
-    p.rect(mx, my, mw, 16, P.ink);
-    p.rect(mx + 1, my + 1, mw - 2, 14, P.orange);
-    p.rect(mx + 1, my + 10, mw - 2, 5, P.orangeDark);
-    p.hline(mx + 1, my + 1, mw - 2, 0xf4a860);
-    for (let x = mx + 3; x < mx + mw - 3; x += 3) p.vline(x, my + 11, 3, shade(P.orangeDark, 0.7));
-    // Cilindros.
-    for (let i = 0; i < 3; i++) {
-      const cx = mx + 4 + i * 6;
-      p.rect(cx, my - 4, 4, 5, P.ink);
-      p.rect(cx + 1, my - 3, 2, 4, P.rockLight);
-    }
-    // Volante.
-    p.circle(mx + mw - 6, my + 6, 4, P.ink);
-    p.circle(mx + mw - 6, my + 6, 3, P.rock);
-    p.px(mx + mw - 6, my + 6, P.ink);
-    p.hline(mx + mw - 9, my + 6, 7, P.rockDark);
-    // Escapamento até o teto.
-    p.rect(W - 10, 4, 5, fy - 4, P.ink);
-    p.rect(W - 9, 4, 3, fy - 4, P.rockDark);
-    p.vline(W - 9, 4, fy - 4, P.rockLight);
-    // Painelzinho com luzes.
-    p.rect(W - 11, 8, 3, 6, P.ink);
-    p.px(W - 10, 9, P.green);
-    p.px(W - 10, 11, P.red);
-    if (eq === 'catalisador') {
-      p.rect(mx + 22, my - 6, 7, 6, P.ink);
-      p.rect(mx + 23, my - 5, 5, 4, P.teal);
-      p.hline(mx + 23, my - 5, 5, P.white);
-    }
+    const mw = W - 13;
+    box(c, mx, fy - 14, mw, 13, vgrad(c, fy - 14, fy - 1, [[0, 0x5e6470], [1, 0x34383f]]), 1.2, INK, 0.6);
+    box(c, mx + 2, fy - 12, mw * 0.45, 6, vgrad(c, fy - 12, fy - 6, [[0, 0xf09a50], [1, 0xc4622b]]), 0.6, INK, 0.4);
+    // Grade da ventoinha do motor.
+    circle(c, mx + mw - 6, fy - 7.5, 4.4, 0x2a2e34, INK, 0.5);
+    for (let i = 0; i < 4; i++) line(c, [[mx + mw - 10, fy - 9.5 + i * 1.3], [mx + mw - 2, fy - 9.5 + i * 1.3]], 0x6a707a, 0.35);
+    // Mostradores e etiqueta de perigo.
+    circle(c, mx + 4, fy - 3.5, 1.4, 0xe8e4d8, INK, 0.35);
+    line(c, [[mx + 4, fy - 3.5], [mx + 4.8, fy - 4.3]], 0xe0573a, 0.3);
+    circle(c, mx + 8, fy - 3.5, 1.4, 0xe8e4d8, INK, 0.35);
+    poly(c, [[mx + mw * 0.3, fy - 11.4], [mx + mw * 0.3 + 2, fy - 8], [mx + mw * 0.3 - 2, fy - 8]], 0xf4c84a, INK, 0.3);
+    // Cabos no chão.
+    c.beginPath();
+    c.moveTo(mx + mw, fy - 2);
+    c.quadraticCurveTo(W - 4, fy + 0.4, W - 3, fy - 6);
+    c.strokeStyle = css(0x1a1a1e);
+    c.lineWidth = 0.7;
+    c.stroke();
+    if (eq === 'catalisador') box(c, mx + mw * 0.55, fy - 19, 4, 5, vgrad(c, fy - 19, fy - 14, [[0, 0x6ad0d0], [1, 0x2a8080]]), 0.8, INK, 0.4);
   },
-  panel: (p, W, H, eq) => {
+  panel: (c, W, H, eq) => {
     const fy = floorY(H);
-    // Armário com duas portas e fileiras de chaves.
-    p.rect(4, 8, W - 8, fy - 8, P.ink);
-    p.rect(5, 9, W - 10, fy - 10, P.rock);
-    p.vline(Math.floor(W / 2), 9, fy - 10, P.ink);
-    p.hline(5, 9, W - 10, P.rockLight);
-    for (let y = 11; y < fy - 3; y += 4) {
-      for (let x = 7; x < W - 6; x += 3) {
-        if (x === Math.floor(W / 2)) continue;
-        p.rect(x, y, 2, 2, P.ink);
-        p.px(x, y + ((x + y) % 2), (x + y) % 3 ? P.paper : P.yellow);
-      }
+    // Telão com mapa verde.
+    box(c, 5, 6, W - 10, 9, 0x1a2a22, 0.6, INK, 0.5);
+    c.save();
+    rr(c, 5.6, 6.6, W - 11.2, 7.8, 0.4);
+    c.clip();
+    c.fillStyle = vgrad(c, 6, 15, [[0, 0x1e5a3a], [1, 0x0e3a24]]);
+    c.fillRect(5, 6, W - 10, 9);
+    for (let x = 6; x < W - 5; x += 2) line(c, [[x, 6], [x, 15]], 0x2a7a4a, 0.15, 0.6);
+    const r = seeded(W);
+    for (let i = 0; i < 6; i++) ellipse(c, 7 + r() * (W - 14), 8 + r() * 5, 1.5 + r() * 2.5, 0.8 + r(), css(0x6ad08a, 0.7));
+    c.restore();
+    // Mesa com monitores e quadro de disjuntores.
+    box(c, 4, fy - 6, W - 8, 1.4, vgrad(c, fy - 6, fy - 4.6, [[0, 0x8a6a44], [1, 0x5a4028]]), 0.3, INK, 0.4);
+    line(c, [[6, fy - 4.6], [6, fy]], 0x3a2c1c, 0.6);
+    line(c, [[W - 6, fy - 4.6], [W - 6, fy]], 0x3a2c1c, 0.6);
+    for (const mx of [7, W - 13]) {
+      box(c, mx, fy - 11, 6, 4.5, 0x1a1e24, 0.4, INK, 0.4);
+      box(c, mx + 0.6, fy - 10.4, 4.8, 3.3, 0x2a7a8a, 0.2, null);
+      line(c, [[mx + 3, fy - 6.5], [mx + 3, fy - 6]], 0x1a1e24, 0.6);
     }
-    // Placa de perigo.
-    p.rect(Math.floor(W / 2) - 3, 5, 7, 1, P.ink);
-    p.rect(Math.floor(W / 2) - 2, 4, 5, 1, P.yellow);
-    // Cabos pendurados.
-    p.vline(6, 4, 4, P.red);
-    p.vline(8, 4, 5, P.yellow);
-    p.vline(W - 7, 4, 4, P.blue);
-    if (eq === 'regulador') {
-      p.rect(W - 12, fy - 9, 8, 8, P.ink);
-      p.rect(W - 11, fy - 8, 6, 6, P.teal);
-      p.px(W - 8, fy - 6, P.yellow);
-    }
+    // Disjuntores na base (os LEDs piscam por cima).
+    box(c, 5, fy - 4, W - 10, 3.6, 0x3a4052, 0.3, INK, 0.35);
+    if (eq === 'regulador') box(c, W / 2 - 2.5, fy - 11.5, 5, 5, vgrad(c, fy - 11.5, fy - 6.5, [[0, 0x6ad0d0], [1, 0x2a8080]]), 0.6, INK, 0.4);
   },
-  vent: (p, W, H, eq) => {
+  vent: (c, W, H, eq) => {
     const fy = floorY(H);
-    const cx = Math.floor(W / 2);
-    const cy = Math.floor((4 + fy) / 2) + 1;
-    const r = Math.min(W, fy - 4) / 2 - 2;
-    // Dutos subindo até o teto.
-    p.rect(cx - 3, 4, 6, cy - r - 2, P.rockLight);
-    p.vline(cx - 3, 4, cy - r - 2, P.ink);
-    p.vline(cx + 2, 4, cy - r - 2, P.rockDark);
-    // Carcaça redonda.
-    p.circle(cx, cy, r + 1, P.ink);
-    p.circle(cx, cy, r, P.rockLight);
-    p.circle(cx, cy, r - 1, P.rock);
-    p.circle(cx, cy, r - 2, 0x14101a);
-    // Grades laterais.
-    for (let y = 8; y < fy - 3; y += 3) {
-      p.hline(3, y, 3, P.rockDark);
-      p.hline(W - 6, y, 3, P.rockDark);
-    }
-    if (eq === 'filtro') {
-      p.rect(3, fy - 7, 7, 7, P.ink);
-      p.rect(4, fy - 6, 5, 5, P.white);
-      p.hline(4, fy - 4, 5, P.skyLight);
-    }
+    const cx = W / 2;
+    const cy = (CEIL + fy) / 2 + 0.5;
+    // Canos verdes de oxigênio.
+    box(c, 3.5, CEIL, 1.8, fy - CEIL, hgrad(c, 3.5, 5.3, [[0, 0x8ad06a], [1, 0x3a7a3a]]), 0.4, INK, 0.35);
+    box(c, 3.5, CEIL + 4, cx - 6, 1.6, vgrad(c, CEIL + 4, CEIL + 5.6, [[0, 0x8ad06a], [1, 0x3a7a3a]]), 0.4, INK, 0.35);
+    // Carcaça com abertura redonda (a hélice gira por cima).
+    box(c, cx - 9, cy - 9, 18, 18, vgrad(c, cy - 9, cy + 9, [[0, 0x9aa0a8], [1, 0x5a5e66]]), 2, INK, 0.6);
+    circle(c, cx, cy, 7.2, 0x2a2e34, INK, 0.5);
+    circle(c, cx, cy, 6.4, 0x0e1014, null);
+    for (const [px, py] of [[cx - 7.6, cy - 7.6], [cx + 7.6, cy - 7.6], [cx - 7.6, cy + 7.6], [cx + 7.6, cy + 7.6]]) circle(c, px, py, 0.5, 0xc8ccd4, null);
+    circle(c, cx + 6.5, cy - 8.5, 0.7, 0x6ad06a, null);
+    if (eq === 'filtro') box(c, W - 6.5, fy - 9, 4, 9, vgrad(c, fy - 9, fy, [[0, 0xf2f2f2], [1, 0xb8c0c8]]), 0.6, INK, 0.4);
   },
-  greenhouse: (p, W, H, eq) => {
+  greenhouse: (c, W, H, eq) => {
     const fy = floorY(H);
-    // Cano de irrigação.
-    p.hline(3, 12, W - 6, P.teal);
-    p.hline(3, 13, W - 6, shade(P.teal, 0.6));
-    // Lâmpadas de cultivo com brilho roxo.
-    const lamps = eq === 'lampada' ? Math.floor(W / 9) : Math.floor(W / 16);
-    for (let i = 0; i < lamps; i++) {
-      const x = 5 + Math.floor(((W - 14) * i) / Math.max(1, lamps - 1));
-      p.rect(x, 4, 5, 2, P.ink);
-      p.rect(x + 1, 6, 3, 1, P.pink);
-      for (let y = 7; y < fy; y++) p.rect(x - Math.floor((y - 7) / 3), y, 5 + Math.floor((y - 7) / 3) * 2, 1, P.purple, 0.06);
+    const tiers = [fy - 13.5, fy - 2];
+    const bars = eq === 'lampada' ? 4 : 2;
+    // Barras de luz de cultivo.
+    for (let i = 0; i < bars; i++) {
+      const x = 5 + ((W - 10) / bars) * i + 1;
+      const w = (W - 10) / bars - 2;
+      glow(c, x + w / 2, CEIL + 2, 14, 0xf2ffe0, 0.35);
+      box(c, x, CEIL + 1, w, 1.4, 0xf8fff0, 0.6, 0x5a6a5a, 0.3);
     }
-    // Canteiros com plantas variadas.
-    for (let x = 4; x < W - 10; x += 12) {
-      p.rect(x, fy - 5, 11, 5, P.ink);
-      p.rect(x + 1, fy - 4, 9, 3, P.dirt);
-      p.hline(x + 1, fy - 4, 9, P.dirtLight);
-      for (let k = 0; k < 3; k++) plant(p, x + 2 + k * 3, fy - 5, (x + k * 5) % 4);
-    }
-  },
-  kitchen: (p, W, H, eq) => {
-    const fy = floorY(H);
-    // Azulejos no alto da parede.
-    for (let y = 5; y < fy - 12; y += 3) for (let x = 3 + ((y / 3) % 2) * 3; x < W - 3; x += 6) p.rect(x, y, 3, 3, P.paper);
-    // Bancada, fogão e panelas.
-    p.rect(3, fy - 9, W - 6, 9, P.ink);
-    p.rect(4, fy - 8, W - 8, 8, P.dirt);
-    p.hline(4, fy - 8, W - 8, P.dirtLight);
-    for (let x = 8; x < W - 8; x += 8) p.vline(x, fy - 7, 7, P.dirtDark);
-    p.rect(6, fy - 9, 12, 2, P.rockLight);
-    p.rect(7, fy - 14, 6, 5, P.ink);
-    p.rect(8, fy - 13, 4, 3, P.orange);
-    p.hline(7, fy - 14, 6, P.rockLight);
-    p.rect(14, fy - 11, 4, 2, P.rockDark);
-    // Utensílios pendurados.
-    p.vline(22, 5, 4, P.rockLight);
-    p.rect(21, 9, 3, 2, P.rockLight);
-    p.vline(26, 5, 5, P.rockLight);
-    if (eq === 'freezer') {
-      p.rect(W - 12, fy - 18, 9, 18, P.ink);
-      p.rect(W - 11, fy - 17, 7, 16, P.white);
-      p.hline(W - 11, fy - 10, 7, P.rockLight);
-      p.vline(W - 5, fy - 15, 3, P.rockDark);
-    } else {
-      // Prateleira com latas.
-      p.hline(W - 16, fy - 18, 12, P.dirtLight);
-      for (let x = W - 15; x < W - 5; x += 3) {
-        p.rect(x, fy - 22, 2, 4, P.red);
-        p.px(x, fy - 21, P.white);
+    for (const ty of tiers) {
+      // Prateleira hidropônica com folhas fartas.
+      box(c, 4, ty, W - 8, 1.6, vgrad(c, ty, ty + 1.6, [[0, 0xd8dcd8], [1, 0x8a908a]]), 0.3, INK, 0.4);
+      line(c, [[5, ty + 1.6], [5, ty + (ty === tiers[0] ? 11.5 : 2)]], 0x6a706a, 0.6);
+      line(c, [[W - 5, ty + 1.6], [W - 5, ty + (ty === tiers[0] ? 11.5 : 2)]], 0x6a706a, 0.6);
+      const r = seeded(Math.round(ty * 7 + W));
+      for (let x = 6; x < W - 6; x += 1.6) {
+        const h = 3 + r() * 3.5;
+        for (let k = 0; k < 3; k++) {
+          const lx = x + (r() - 0.5) * 2;
+          const ly = ty - r() * h;
+          c.beginPath();
+          c.ellipse(lx, ly, 1.3, 0.8, (r() - 0.5) * 1.6, 0, Math.PI * 2);
+          c.fillStyle = css([0x4a9a3a, 0x6abf4a, 0x8ad86a][Math.floor(r() * 3)]);
+          c.fill();
+          c.strokeStyle = css(0x1e4a1e, 0.6);
+          c.lineWidth = 0.2;
+          c.stroke();
+        }
+        if (r() < 0.12) circle(c, x, ty - 2 - r() * 2, 0.6, 0xe0573a, null);
       }
     }
   },
-  reservoir: (p, W, H, eq) => {
+  kitchen: (c, W, H, eq) => {
     const fy = floorY(H);
-    // Tanque de vidro (o nível da água é desenhado por cima, dinâmico).
-    p.rect(4, 6, W - 8, fy - 6, P.ink);
-    p.rect(5, 7, W - 10, fy - 8, 0x182a4a);
-    p.rect(6, 8, 1, fy - 12, P.skyLight);
-    for (let x = 10; x < W - 6; x += 8) {
-      p.px(x, 7, P.rockLight);
-      p.px(x, fy - 2, P.rockLight);
-    }
-    // Cano e registro.
-    p.rect(W - 4, 10, 2, fy - 12, P.rockDark);
-    p.circle(W - 4, 14, 2, P.red);
-    if (eq === 'bomba') {
-      p.rect(W - 14, fy - 9, 9, 9, P.ink);
-      p.rect(W - 13, fy - 8, 7, 7, P.orange);
-      p.hline(W - 13, fy - 8, 7, 0xf4a860);
-    }
+    // Azulejos claros atrás da bancada.
+    for (let y = fy - 13; y < fy - 6; y += 2) for (let x = 4; x < W - 12; x += 2) box(c, x, y, 1.9, 1.9, (x + y) % 4 < 2 ? 0xe8e0cc : 0xd0c8b4, 0.2, null);
+    // Bancada com armários.
+    box(c, 3.5, fy - 6.5, W - 15, 6.5, vgrad(c, fy - 6.5, fy, [[0, 0x8a6a40], [1, 0x5a4028]]), 0.4, INK, 0.45);
+    box(c, 3, fy - 7.2, W - 14, 1.2, 0xc8c4b8, 0.3, INK, 0.4);
+    for (let x = 7; x < W - 13; x += 5) line(c, [[x, fy - 5.6], [x, fy - 0.6]], 0x3a2c1c, 0.3);
+    // Fogão com panela fumegando.
+    box(c, 6, fy - 9, 5, 2, 0x3a3e46, 0.3, INK, 0.35);
+    box(c, 6.5, fy - 12, 4, 3, vgrad(c, fy - 12, fy - 9, [[0, 0xf09a50], [1, 0xb0521f]]), 0.8, INK, 0.4);
+    // Prateleira com latas e potes.
+    line(c, [[W - 30, fy - 16], [W - 15, fy - 16]], 0x7a5a36, 0.8);
+    for (let x = W - 29; x < W - 16; x += 2.4) box(c, x, fy - 19, 1.8, 2.8, [0xe0573a, 0xf4c84a, 0x6abf5a][Math.round(x) % 3], 0.3, INK, 0.25);
+    // Geladeira (freezer maior quando equipado).
+    const fw = eq === 'freezer' ? 9 : 7;
+    box(c, W - fw - 3, fy - 17, fw, 17, vgrad(c, fy - 17, fy, [[0, 0xf2f2ee], [1, 0xb8bcb8]]), 1, INK, 0.5);
+    line(c, [[W - fw - 3, fy - 10], [W - 3, fy - 10]], 0x8a8e8a, 0.35);
+    line(c, [[W - fw - 1.5, fy - 15], [W - fw - 1.5, fy - 12]], 0x6a6e6a, 0.5);
+    if (eq === 'freezer') box(c, W - fw - 1, fy - 8.5, fw - 4, 1.2, 0x8ad0ff, 0.3, null);
+  },
+  reservoir: (c, W, H, eq) => {
+    const fy = floorY(H);
+    // Cano com registro.
+    box(c, W - 6, CEIL, 2, fy - CEIL, hgrad(c, W - 6, W - 4, [[0, 0x8a909a], [1, 0x4a4e56]]), 0.3, INK, 0.35);
+    circle(c, W - 5, CEIL + 6, 2, 0xd0453a, INK, 0.4);
+    line(c, [[W - 7, CEIL + 6], [W - 3, CEIL + 6]], 0x8a2a2a, 0.4);
+    // Tanque de vidro (a água é desenhada por cima, com o nível real).
+    box(c, 5, 5, W - 13, fy - 5.5, 0x16263a, 2, INK, 0.6);
+    c.save();
+    rr(c, 5.5, 5.5, W - 14, fy - 6.5, 1.6);
+    c.clip();
+    c.fillStyle = hgrad(c, 5, W - 8, [[0, 0x1e3a5a], [0.5, 0x16263a], [1, 0x0e1a2a]]);
+    c.fillRect(5, 5, W - 13, fy);
+    c.restore();
+    for (const yy of [9, fy - 4]) box(c, 4.4, yy, W - 11.8, 1.4, 0x6a707a, 0.3, INK, 0.35);
+    if (eq === 'bomba') box(c, W - 12, fy - 7, 6, 7, vgrad(c, fy - 7, fy, [[0, 0xf09a50], [1, 0xb0521f]]), 1, INK, 0.45);
   },
 };
 
-function corridor(p: Pix, W: number, H: number, eq: EquipmentId | null, entrance: boolean): void {
-  p.rect(0, 0, W, H, 0x2e272c);
-  for (let y = 0; y < H; y += 4) p.hline(2, y, W - 4, 0x352d33);
-  p.rect(0, 0, 2, H, P.rock);
-  p.vline(0, 0, H, P.ink);
-  p.rect(W - 2, 0, 2, H, P.rockDark);
-  p.vline(W - 1, 0, H, P.ink);
-  // Escada de mão.
-  p.vline(4, 0, H, P.dirtLight);
-  p.vline(W - 5, 0, H, P.dirt);
-  for (let y = 2; y < H; y += 4) p.hline(4, y, W - 8, P.dirtLight);
-  // Arandela.
-  p.rect(W - 4, 5, 2, 2, P.yellow);
-  if (eq === 'escora') {
-    p.rect(1, 0, 2, H, P.clay);
-    p.rect(W - 3, 0, 2, H, P.clay);
-    p.hline(1, 0, W - 2, P.clay);
+function bed(c: Ctx, x: number, fy: number, k: number, upper = false): void {
+  const y = fy - 6;
+  const blanket = [0x4a7a3a, 0x3a6a8a, 0x8a4a3a, 0x6a5a8a][k % 4];
+  if (!upper) {
+    line(c, [[x, y - 3], [x, fy]], 0x3a4a3a, 0.7);
+    line(c, [[x + 14, y + 1], [x + 14, fy]], 0x3a4a3a, 0.7);
   }
+  box(c, x, y + 1.5, 14.5, 2.5, 0x3a4a3a, 0.3, INK, 0.4);
+  box(c, x + 0.5, y - 0.2, 13.5, 2.2, 0xe8e4d8, 0.6, INK, 0.35);
+  box(c, x + 1, y - 1.4, 3.6, 2, 0xf8f6f0, 0.8, INK, 0.3);
+  box(c, x + 4.4, y - 0.8, 9.4, 2.6, vgrad(c, y - 0.8, y + 1.8, [[0, light(blanket, 0.25)], [1, blanket]]), 0.6, INK, 0.35);
+}
+
+function corridor(c: Ctx, W: number, H: number, eq: EquipmentId | null, entrance: boolean): void {
+  c.fillStyle = vgrad(c, 0, H, [[0, 0x3e3834], [1, 0x2e2a26]]);
+  c.fillRect(0, 0, W, H);
+  for (let y = 4; y < H; y += 8) line(c, [[2, y], [W - 2, y]], 0x24201c, 0.3, 0.6);
+  // Esteios de madeira nas laterais.
+  box(c, 0, 0, 2.2, H, hgrad(c, 0, 2.2, [[0, 0x8a5e36], [1, 0x5e3e22]]), 0.2, INK, 0.35);
+  box(c, W - 2.2, 0, 2.2, H, hgrad(c, W - 2.2, W, [[0, 0x8a5e36], [1, 0x5e3e22]]), 0.2, INK, 0.35);
+  if (eq === 'escora') for (let y = 2; y < H; y += 8) poly(c, [[2.2, y], [W - 2.2, y + 6], [W - 2.2, y + 7.2], [2.2, y + 1.2]], 0x7a5232, INK, 0.3);
+  // Escada de madeira.
+  line(c, [[5, 0], [5, H]], 0x9a6a3a, 0.9);
+  line(c, [[W - 5, 0], [W - 5, H]], 0x9a6a3a, 0.9);
+  for (let y = 2; y < H; y += 3.2) line(c, [[5, y], [W - 5, y]], 0xb07a44, 0.7);
   if (entrance) {
-    p.rect(0, 0, W, 2, P.rockLight);
-    p.rect(3, 0, W - 6, 1, P.yellow);
+    box(c, -0.5, -0.5, W + 1, 2, 0x8a8478, 0.3, INK, 0.4);
+  } else {
+    glow(c, W - 3.5, 6, 5, 0xffd27a, 0.45);
+    circle(c, W - 3.5, 6, 0.7, 0xfff2c0, null);
   }
 }
 
-function bed(p: Pix, x: number, y: number, blanket: number): void {
-  p.rect(x, y + 2, 16, 6, P.ink);
-  p.rect(x + 1, y + 3, 14, 3, P.paperDark);
-  p.rect(x + 1, y + 2, 4, 2, P.white);
-  p.rect(x + 5, y + 2, 10, 3, blanket);
-  p.hline(x + 5, y + 2, 10, shade(blanket, 1.3));
-  p.rect(x + 1, y + 6, 14, 1, P.dirt);
-  p.vline(x, y, 8, P.dirt);
-  p.vline(x + 15, y + 2, 6, P.dirt);
-}
-
-function plant(p: Pix, x: number, y: number, kind: number): void {
-  const h = 5 + kind;
-  p.vline(x + 1, y - h, h, P.greenDark);
-  p.rect(x, y - h + 1, 1, 2, P.green);
-  p.rect(x + 2, y - h + 3, 1, 2, P.green);
-  p.rect(x - 1, y - 3, 2, 1, P.grassLight);
-  if (kind === 0) p.rect(x, y - h - 1, 3, 2, P.grassLight);
-  if (kind === 1) p.px(x + 2, y - h + 1, P.red);
-  if (kind === 2) p.px(x, y - h, P.yellow);
-  if (kind === 3) {
-    p.px(x + 2, y - 4, P.red);
-    p.px(x, y - 6, P.red);
-  }
-}
-
-/** Hélice do ventilador (gira como sprite). */
-export function fanKey(scene: Phaser.Scene, size: number): string {
-  return makeTexture(scene, `fan2_${size}`, size, size, (p) => {
-    const c = (size - 1) / 2;
-    for (let i = 0; i < 3; i++) {
-      const a = (i * Math.PI * 2) / 3;
-      for (let r = 2; r < c; r += 0.5) {
-        const w = 0.25 + r * 0.06;
-        for (let k = -w; k <= w; k += 0.05) {
-          const ang = a + k + r * 0.04;
-          p.px(Math.round(c + Math.cos(ang) * r), Math.round(c + Math.sin(ang) * r), r > c - 1.5 ? P.rockDark : P.rockLight);
-        }
-      }
+/** Hélice do ventilador (gira como sprite); `r` em unidades do mundo. */
+export function fanKey(scene: Phaser.Scene, r: number): string {
+  return hdTexture(scene, `hdfan_${r}`, r * 2, r * 2, (c) => {
+    c.translate(r, r);
+    for (let i = 0; i < 4; i++) {
+      c.rotate(Math.PI / 2);
+      c.beginPath();
+      c.ellipse(0, -r * 0.5, r * 0.22, r * 0.48, 0.35, 0, Math.PI * 2);
+      c.fillStyle = vgrad(c, -r, 0, [[0, 0xc8ccd4], [1, 0x7a808a]]);
+      c.fill();
+      c.strokeStyle = css(INK);
+      c.lineWidth = 0.35;
+      c.stroke();
     }
-    p.circle(Math.round(c), Math.round(c), 2, P.ink);
-    p.px(Math.round(c), Math.round(c), P.yellow);
+    circle(c, 0, 0, r * 0.2, 0x3a3e46, INK, 0.35);
   });
 }
 
-/** Cobertura de sala desmoronada. */
+/** Sala desmoronada: entulho, viga torta, poeira. */
 export function collapsedKey(scene: Phaser.Scene, wTiles: number, hTiles: number): string {
   const W = wTiles * TILE;
   const H = hTiles * TILE;
-  return makeTexture(scene, `r2_collapsed_${wTiles}x${hTiles}`, W, H, (p) => {
-    p.rect(0, 0, W, H, 0x2a2226);
-    // Teto caído em diagonal, entulho e vergalhão.
-    for (let x = 0; x < W; x++) {
-      const y = Math.round(2 + (x / W) * (H * 0.45));
-      p.rect(x, y, 1, 3, P.rock);
-      p.px(x, y, P.rockLight);
-      p.px(x, y + 3, P.ink);
-    }
-    for (let x = 2; x < W - 6; x += 6) {
-      const y = H - 7 - (x % 4);
-      p.rect(x, y, 6, 5, P.ink);
-      p.rect(x + 1, y + 1, 4, 3, (x / 6) % 2 ? P.rock : P.dirt);
-      p.px(x + 1, y + 1, P.rockLight);
-    }
-    p.hline(3, H - 10, W - 8, P.orangeDark);
-    p.rect(0, 0, 1, H, P.ink);
-    p.rect(W - 1, 0, 1, H, P.ink);
+  return hdTexture(scene, `hd_collapsed_${wTiles}x${hTiles}`, W, H, (c) => {
+    c.fillStyle = vgrad(c, 0, H, [[0, 0x2a2420], [1, 0x1a1512]]);
+    c.fillRect(0, 0, W, H);
+    const r = seeded(W * 3 + H);
+    poly(c, [[0, 2], [W * 0.6, H * 0.45], [W * 0.6, H * 0.45 + 3], [0, 5]], 0x4e535c, INK, 0.5);
+    for (let i = 0; i < W / 3; i++) stone(c, r() * W, H - 3 - r() * H * 0.45, 2 + r() * 3, 1.5 + r() * 2, 0x6a625c, i);
+    line(c, [[W * 0.3, H - 6], [W * 0.8, H - 10]], 0xb0521f, 0.7);
   });
 }

@@ -108,7 +108,7 @@ export class SurvivalPanel {
     for (const m of run.missions) {
       const col = m.status === 'cumprida' ? statusColor('good') : m.status === 'falhou' ? statusColor('bad') : P.paper;
       const icon = m.status === 'cumprida' ? 'check' : m.status === 'falhou' ? 'cross' : 'mission';
-      this.add(this.scene.add.image(2, y + 2, iconKey(this.scene, icon)).setOrigin(0, 0));
+      this.add(this.scene.add.image(2, y + 2, iconKey(this.scene, icon)).setOrigin(0, 0).setScale(1.2 / 4));
       const tx = txt(this.scene, 16, y, missionText(run, m.type, m.personId, m.untilDay), 13, col, { wrap: w - 18 });
       this.add(tx);
       y += tx.height + 4;
@@ -124,7 +124,7 @@ export class SurvivalPanel {
       }, this.scroll.guard(() => this.actions.openPerson(p.id)));
       b.label?.setX(30);
       b.sub?.setX(30);
-      const face = this.scene.add.image(14, 34, personKey(this.scene, p.look, p.archetype, p.morale < 25 ? 'raiva' : p.morale >= 70 ? 'feliz' : 'ok', 0)).setOrigin(0.5, 1).setScale(2);
+      const face = this.scene.add.image(14, 34, personKey(this.scene, p.look, p.archetype, p.morale < 25 ? 'raiva' : p.morale >= 70 ? 'feliz' : 'ok', 0)).setOrigin(0.5, 1).setScale(2 * 0.21);
       b.add(face);
       const mood = this.scene.add.rectangle(w - 6, 6, 4, 26, p.morale < 30 ? statusColor('bad') : p.morale < 50 ? statusColor('warn') : statusColor('good')).setOrigin(0, 0);
       b.add(mood);

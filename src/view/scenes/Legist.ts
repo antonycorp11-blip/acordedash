@@ -82,11 +82,11 @@ export class Legist extends Phaser.Scene {
     const note = txt(this, R, ry, `"${t(`legist.lesson.${r.cause}`, {}, r.lessonVariant)}"`, 16, P.blueDark, { wrap: 270 });
     ry += note.height + 10;
     if (summary) {
-      this.add.image(R + 5, ry + 7, iconKey(this, 'star')).setScale(1.4);
+      this.add.image(R + 5, ry + 7, iconKey(this, 'star')).setScale(1.4 / 4);
       txt(this, R + 16, ry, t('legist.knowledge', { n: summary.knowledgeGained }), 16, P.greenDark);
       ry += 18;
       if (summary.newDiary.length) {
-        this.add.image(R + 5, ry + 7, iconKey(this, 'book')).setScale(1.4);
+        this.add.image(R + 5, ry + 7, iconKey(this, 'book')).setScale(1.4 / 4);
         txt(this, R + 16, ry, t('legist.newDiary', { n: summary.newDiary.length }), 16, P.greenDark);
       }
     }

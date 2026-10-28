@@ -32,15 +32,10 @@ export class Title extends Phaser.Scene {
     audio.setMood('menu');
     this.drawBackdrop();
 
-    // Faixa escura atrás do logo, para separar do cenário.
+    // Sombra suave atrás do logo, para separar do cenário.
     const band = this.add.graphics().setDepth(9);
-    for (let i = 0; i < 8; i++) {
-      band.fillStyle(P.ink, 0.09 * (8 - i));
-      band.fillRect(0, 14 + i * 2, 360, 1);
-      band.fillRect(0, 100 - i * 2, 360, 1);
-    }
-    band.fillStyle(P.ink, 0.75);
-    band.fillRect(0, 30, 360, 56);
+    band.fillStyle(0x0e1320, 0.55);
+    band.fillRoundedRect(-20, 24, 380, 68, 18);
     // Logo com sombra em camadas.
     const lx = 160;
     const ly = 46;
@@ -98,9 +93,9 @@ export class Title extends Phaser.Scene {
     this.demo = demo;
     this.view = new BunkerView(this, { x: 0, y: 0, w: 640, h: 360 }, { dragPans: () => true, blocked: () => true });
     this.view.sync(demo);
-    this.view.zoom = 2;
-    this.view.world.setScale(2);
-    this.view.world.setPosition(-80, -40);
+    this.view.zoom = 2.5;
+    this.view.world.setScale(2.5);
+    this.view.world.setPosition(-100, -90);
     // Escurece a lateral dos botões e o canto do logo.
     const g = this.add.graphics().setDepth(5);
     for (let i = 0; i < 12; i++) {

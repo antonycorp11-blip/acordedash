@@ -9,11 +9,13 @@ Decisões tomadas onde o documento de design deixava espaço, e por quê.
 - Construção: 10 dias. Meta inicial: 30 dias. Idioma: pt-BR.
 
 ## Técnica
-- Layout pensado em 640×360 (tiles de 16 px), mas o canvas é 1280×720 com câmera 2×: texto nítido e pixels uniformes. O zoom do bunker anda em passos de 0,5 para cada pixel de arte virar um número inteiro de pixels na tela. 320×180 deixava o texto ilegível em português.
+- Estilo visual: por pedido do dono do projeto, a arte segue referências de cartum 2D em alta definição (contorno escuro, sombreamento, cores quentes) em vez de pixel art de baixa resolução. Tudo continua gerado por código: as texturas são desenhadas vetorialmente em canvas a 4 texels por unidade do mundo e exibidas com filtragem suave.
+- Layout pensado em 640×360 (tiles de 16 unidades), canvas 1280×720 com câmera 2×.
+- Céu da superfície muda por fase: pôr do sol com ruínas (construção), cogumelo nuclear (contagem), céu tóxico verde (sobrevivência).
 - Iluminação: o subsolo escurece com a profundidade e as salas acesas abrem luz quente em volta; sala sem energia fica no escuro (sinal visual de falha).
 - Grade lateral (corte do terreno) de 30×16 células. O bunker é visto de lado, como um formigueiro.
 - Zoom/arrasto feitos escalando um Container em vez de duas câmeras, para manter o teste de toque simples e correto.
-- Fontes: Pixelify Sans (interface) e VT323 (textos narrativos), via Google Fonts, com espera máxima de 2,5 s e fallback monospace se não houver rede.
+- Fontes: Fredoka (interface e textos) e Lilita One (logo e títulos), via Google Fonts, com espera máxima de 2,5 s e fallback monospace se não houver rede.
 - `tick` é puro (copia o estado). A simulação em lote usa `tickMut` para não copiar a cada hora.
 - O estado do RNG (mulberry32) mora dentro do estado da run; salvar a run salva a sequência aleatória, então a retomada é exata.
 - Nomes de pessoas guardados como índice (`nameId`) no núcleo; o texto do nome fica no arquivo de idioma.
