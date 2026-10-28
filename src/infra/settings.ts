@@ -10,6 +10,7 @@ export function defaultSettings(): Settings {
     colorblind: false,
     reduceMotion: prefersReducedMotion(),
     defaultSpeed: 1,
+    fullscreen: true,
   };
 }
 

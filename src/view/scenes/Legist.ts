@@ -9,7 +9,7 @@ import { P } from '../art/palette';
 import { iconKey } from '../art/sprites/icons';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, txt, hiRes } from '../ui/buttons';
+import { Button, txt, hiRes, LEFT, VW } from '../ui/buttons';
 import { fadeIn, go, startJourney } from './common';
 
 export class Legist extends Phaser.Scene {
@@ -33,7 +33,7 @@ export class Legist extends Phaser.Scene {
   }
 
   private draw(r: LegistReport, summary: RunSummary | null): void {
-    this.add.rectangle(0, 0, 640, 360, P.shadow).setOrigin(0, 0);
+    this.add.rectangle(LEFT, 0, VW, 360, P.shadow).setOrigin(0, 0);
     const g = this.add.graphics();
     g.fillStyle(P.paper);
     g.fillRect(16, 10, 608, 300);

@@ -15,7 +15,7 @@ import { computeTopology } from '../../core/topology';
 import { P } from '../art/palette';
 import { store } from '../store';
 import { personName, t } from '../text';
-import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes, LEFT, VW } from '../ui/buttons';
 import { ScrollArea } from '../ui/scroll';
 
 type Tab = 'values' | 'log' | 'rooms' | 'people' | 'actions' | 'batch';
@@ -37,7 +37,7 @@ export class Dev extends Phaser.Scene {
     hiRes(this);
     this.from = data.from;
     this.tabBtns.clear();
-    this.add.rectangle(0, 0, 640, 360, P.ink, 0.88).setOrigin(0, 0).setInteractive();
+    this.add.rectangle(LEFT, 0, VW, 360, P.ink, 0.88).setOrigin(0, 0).setInteractive();
     const g = this.add.graphics();
     drawPanel(g, 6, 6, 628, 348, P.night);
     txt(this, 14, 10, t('dev.title'), 16, P.green);

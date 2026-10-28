@@ -12,7 +12,7 @@ import { P } from '../art/palette';
 import { iconKey } from '../art/sprites/icons';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, txt, hiRes } from '../ui/buttons';
+import { Button, txt, hiRes, VW } from '../ui/buttons';
 import { confirm } from '../ui/modal';
 import { fadeIn, go, sceneForRun, startJourney } from './common';
 
@@ -27,7 +27,7 @@ export class Title extends Phaser.Scene {
   }
 
   create(): void {
-    hiRes(this);
+    hiRes(this, true);
     fadeIn(this);
     audio.setMood('menu');
     this.drawBackdrop();
@@ -58,7 +58,7 @@ export class Title extends Phaser.Scene {
 
     const meta = store.meta;
     const run = store.run;
-    const x = 494;
+    const x = VW - 146;
     let y = 46;
     const add = (label: string, style: 'primary' | 'normal', icon: string, fn: () => void, sublabel?: string) => {
       new Button(this, x, y, 138, 42, { label, style, icon: iconKey(this, icon), align: 'left', iconScale: 2, sub: sublabel, size: 15 }, fn).setDepth(12);
@@ -76,7 +76,7 @@ export class Title extends Phaser.Scene {
     add(t('title.skills'), 'normal', 'star', () => go(this, 'Skills'), t('title.knowledge', { n: meta.knowledge }));
     add(t('title.settings'), 'normal', 'gear', () => go(this, 'Settings', { from: 'Title' }));
 
-    txt(this, 494, 12, `${t('title.loops', { n: meta.runs })}\n${t('title.goal', { n: goalFor() })}`, 14, P.paperDark).setDepth(12);
+    txt(this, VW - 146, 12, `${t('title.loops', { n: meta.runs })}\n${t('title.goal', { n: goalFor() })}`, 14, P.paperDark).setDepth(12);
   }
 
   private drawBackdrop(): void {
@@ -91,7 +91,7 @@ export class Title extends Phaser.Scene {
     demo.events = [];
     demo.phase = 'countdown';
     this.demo = demo;
-    this.view = new BunkerView(this, { x: 0, y: 0, w: 640, h: 360 }, { dragPans: () => true, blocked: () => true });
+    this.view = new BunkerView(this, { x: 0, y: 0, w: VW, h: 360 }, { dragPans: () => true, blocked: () => true });
     this.view.sync(demo);
     this.view.zoom = 2.5;
     this.view.world.setScale(2.5);
@@ -100,12 +100,12 @@ export class Title extends Phaser.Scene {
     const g = this.add.graphics().setDepth(5);
     for (let i = 0; i < 12; i++) {
       g.fillStyle(P.ink, 0.06 * i);
-      g.fillRect(360 + i * 10, 0, 10, 360);
+      g.fillRect(VW - 280 + i * 10, 0, 10, 360);
     }
     g.fillStyle(P.ink, 0.72);
-    g.fillRect(480, 0, 160, 360);
+    g.fillRect(VW - 160, 0, 160, 360);
     this.add.particles(0, 0, 'fx_ember', {
-      x: { min: 0, max: 640 }, y: -4, lifespan: 7000, speedY: { min: 6, max: 16 }, speedX: { min: -6, max: 6 },
+      x: { min: 0, max: VW }, y: -4, lifespan: 7000, speedY: { min: 6, max: 16 }, speedX: { min: -6, max: 6 },
       alpha: { start: 0.9, end: 0 }, frequency: store.settings.reduceMotion ? 900 : 160,
     }).setDepth(6);
   }

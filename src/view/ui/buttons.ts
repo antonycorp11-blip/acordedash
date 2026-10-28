@@ -15,14 +15,41 @@ export const UI_ZOOM = 2;
 /** Área mínima de toque em pixels do jogo (≈ 44px de tela em celular). */
 export const MIN_TOUCH = 40;
 
-/** Liga a câmera 2× de uma cena (chamar no começo de cada `create`). */
-export function hiRes(scene: Phaser.Scene): void {
-  scene.cameras.main.setZoom(UI_ZOOM).centerOn(320, 180);
+/**
+ * Largura lógica da tela: a altura é sempre 360 e a largura acompanha a
+ * proporção do aparelho (de 16:9 até ~22:9), para o jogo ocupar a tela toda.
+ */
+export const VH = 360;
+export const VW = computeVW();
+
+function computeVW(): number {
+  if (typeof window === 'undefined') return 640;
+  const long = Math.max(window.innerWidth, window.innerHeight);
+  const short = Math.max(1, Math.min(window.innerWidth, window.innerHeight));
+  return Math.round(Math.min(880, Math.max(640, (VH * long) / short)) / 2) * 2;
 }
 
-/** Posição do ponteiro no espaço 640×360 do jogo. */
-export function ptr(p: { x: number; y: number }): { x: number; y: number } {
-  return { x: p.x / UI_ZOOM, y: p.y / UI_ZOOM };
+/**
+ * Liga a câmera 2× de uma cena (chamar no começo de cada `create`).
+ * `full`: a cena usa a largura toda (0..VW); senão o conteúdo de 640 fica centralizado.
+ */
+export function hiRes(scene: Phaser.Scene, full = false): void {
+  scene.cameras.main.setZoom(UI_ZOOM).centerOn(full ? VW / 2 : 320, VH / 2);
+}
+
+/** Borda esquerda visível numa cena centralizada (negativa quando a tela é mais larga que 640). */
+export const LEFT = -(VW - 640) / 2;
+
+/** Centro horizontal da câmera da cena (320 nas centralizadas, VW/2 nas de largura total). */
+export function viewCenterX(scene: Phaser.Scene): number {
+  const cam = scene.cameras.main;
+  return cam.scrollX + cam.width * cam.originX;
+}
+
+/** Posição do ponteiro em coordenadas da cena. */
+export function ptr(p: { x: number; y: number }, scene: Phaser.Scene): { x: number; y: number } {
+  const w = scene.cameras.main.getWorldPoint(p.x, p.y);
+  return { x: w.x, y: w.y };
 }
 
 export function fontSize(base: number): number {
@@ -181,6 +208,13 @@ export class Button extends Phaser.GameObjects.Container {
       this._disabled = v;
       this.draw(false);
     }
+    return this;
+  }
+
+  /** Mostra ou esconde o botão (escondido ele também não recebe toque). */
+  setShown(v: boolean): this {
+    this.setVisible(v);
+    if (this.hit.input) this.hit.input.enabled = v;
     return this;
   }
 

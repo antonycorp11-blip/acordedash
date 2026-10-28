@@ -13,7 +13,7 @@ import { BunkerView } from '../bunker';
 import { roomSignals } from '../describe';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes, VW } from '../ui/buttons';
 import { Clock, TOP_H, TopBar } from '../ui/hud';
 import { confirm, Modal } from '../ui/modal';
 import { fadeIn, go, Ticker } from './common';
@@ -25,7 +25,7 @@ const ROOM_ICON: Record<RoomType, string> = {
 };
 const TOOL_ICON: Record<string, string> = { pan: 'eye', dig: 'shovel', fill: 'fill', reinforce: 'wall', install: 'equip', demolish: 'hammer' };
 
-export const SIDE_X = 488;
+export const SIDE_X = VW - 152;
 
 export class Build extends Phaser.Scene {
   private view!: BunkerView;
@@ -36,6 +36,10 @@ export class Build extends Phaser.Scene {
   private toolBtns = new Map<Tool, Button>();
   private info!: Phaser.GameObjects.Text;
   private hatchBtn!: Button;
+  private readyBtn!: Button;
+  private placeBtn!: Button;
+  private cancelBtn!: Button;
+  private roomsSig = '';
   private ghost: { x: number; y: number } | null = null;
   private dirty = false;
   private lastSave = 0;
@@ -47,7 +51,7 @@ export class Build extends Phaser.Scene {
   }
 
   create(): void {
-    hiRes(this);
+    hiRes(this, true);
     fadeIn(this);
     audio.setMood('build');
     this.tool = 'pan';
@@ -67,12 +71,14 @@ export class Build extends Phaser.Scene {
     this.buildSide();
     this.ticker = new Ticker(this, 4, 356, SIDE_X - 8, run);
     this.events.on('resume', () => this.view.sync(store.run!));
-    this.selectTool('pan');
+    this.roomsSig = this.signature(run);
+    // Bunker vazio: já começa com o corredor de entrada escolhido e mostrando onde vai.
+    this.selectTool(run.rooms.some((r) => !r.collapsed) ? 'pan' : 'corridor');
   }
 
   private buildSide(): void {
     const g = this.add.graphics().setDepth(45);
-    drawPanel(g, SIDE_X, TOP_H, 640 - SIDE_X, 360 - TOP_H, P.night);
+    drawPanel(g, SIDE_X, TOP_H, VW - SIDE_X, 360 - TOP_H, P.night);
     const tools: Tool[] = ['pan', 'dig', 'fill', 'reinforce', 'install', 'demolish', ...ROOM_TYPES];
     tools.forEach((tool, i) => {
       const col = i % 3;
@@ -90,17 +96,87 @@ export class Build extends Phaser.Scene {
       const r = store.dispatch({ t: 'hatch', open: !store.run!.hatchOpen });
       if (r.ok) audio.play('build');
     }).setDepth(46);
-    new Button(this, SIDE_X + 77, 316, 72, 40, { label: t('hud.ready'), style: 'primary', size: 14 }, () => {
+    this.readyBtn = new Button(this, SIDE_X + 77, 316, 72, 40, { label: t('hud.ready'), style: 'primary', size: 14 }, () => {
       confirm(this, t('hud.readyConfirm'), t('hud.yes'), t('hud.no'), () => store.dispatch({ t: 'skipBuild' }));
     }).setDepth(46);
+    // Com uma sala escolhida, o rodapé vira "construir aqui" + cancelar.
+    this.placeBtn = new Button(this, SIDE_X + 3, 316, 104, 40, { label: t('build.here'), style: 'primary', size: 16 }, () => this.placeGhost()).setDepth(47);
+    this.cancelBtn = new Button(this, SIDE_X + 109, 316, 40, 40, { icon: iconKey(this, 'cross'), iconScale: 1.8 }, () => this.selectTool('pan')).setDepth(47);
+  }
+
+  private isRoomTool(): boolean {
+    return (ROOM_TYPES as string[]).includes(this.tool);
+  }
+
+  /** Mostra os botões certos no rodapé do painel. */
+  private updateFooter(): void {
+    const room = this.isRoomTool();
+    this.hatchBtn.setShown(!room);
+    this.readyBtn.setShown(!room);
+    this.placeBtn.setShown(room);
+    this.cancelBtn.setShown(room);
+    if (room) {
+      const ok = !!this.ghost && checkPlacement(store.run!, this.tool as RoomType, this.ghost.x, this.ghost.y).ok;
+      this.placeBtn.setDisabled(!ok);
+    }
+  }
+
+  /** Todas as posições (canto superior esquerdo) onde a sala escolhida cabe. */
+  private validSpots(type: RoomType): { x: number; y: number }[] {
+    const run = store.run!;
+    const out: { x: number; y: number }[] = [];
+    for (let y = 0; y < run.height; y++) for (let x = 0; x < run.width; x++) if (checkPlacement(run, type, x, y).ok) out.push({ x, y });
+    return out;
+  }
+
+  /** Redesenha a zona verde e reposiciona o fantasma (perto do centro da tela ou do último lugar). */
+  private refreshRoomTool(near?: { cx: number; cy: number }): void {
+    const type = this.tool as RoomType;
+    const def = BALANCE.rooms[type];
+    const spots = this.validSpots(type);
+    this.view.drawZones(spots.map((s) => ({ x: s.x, y: s.y, w: def.w, h: def.h })));
+    if (!spots.length) {
+      this.ghost = null;
+      this.view.clearGhost();
+      this.showToolInfo(t(store.run!.rooms.length ? 'build.noSpot' : 'build.reason.firstEntrance'));
+      this.updateFooter();
+      return;
+    }
+    const c = near ?? this.view.centerCell();
+    const best = nearest(spots, c.cx - Math.floor(def.w / 2), c.cy - Math.floor(def.h / 2));
+    this.setGhost(best.x, best.y);
+    this.view.reveal(best.x, best.y, def.w, def.h);
+  }
+
+  private placeGhost(): void {
+    if (!this.ghost || !this.isRoomTool()) return;
+    const g = this.ghost;
+    const r = store.dispatch({ t: 'place', room: this.tool as RoomType, x: g.x, y: g.y });
+    this.feedback(r.ok, r.reason, 'build', g.x, g.y);
+    if (!r.ok) return;
+    this.view.shake(120, 0.003);
+    this.view.sync(store.run!);
+    this.roomsSig = this.signature(store.run!);
+    // Depois da primeira sala, volta para o modo de olhar; senão mostra a próxima vaga.
+    const built = this.tool;
+    this.selectTool('pan');
+    this.info.setText(t('build.done', { sala: built }));
+  }
+
+  private signature(run: RunState): string {
+    return run.rooms.map((r) => `${r.id}${r.collapsed ? 'x' : ''}`).join(',') + '|' + run.terrain.length;
   }
 
   private selectTool(tool: Tool): void {
     this.tool = tool;
     this.ghost = null;
     this.view.clearGhost();
+    this.view.clearZones();
     for (const [k, b] of this.toolBtns) b.setSelected(k === tool);
     this.showToolInfo();
+    if (this.isRoomTool()) this.refreshRoomTool();
+    else if (tool === 'pan' && !store.run!.rooms.some((r) => !r.collapsed)) this.showToolInfo(t('build.start'));
+    this.updateFooter();
   }
 
   private showToolInfo(extra = ''): void {
@@ -152,7 +228,9 @@ export class Build extends Phaser.Scene {
   }
 
   private hover(cx: number, cy: number): void {
-    if ((ROOM_TYPES as string[]).includes(this.tool)) this.setGhost(cx, cy);
+    if (!this.isRoomTool()) return;
+    const def = BALANCE.rooms[this.tool as RoomType];
+    this.setGhost(cx - Math.floor(def.w / 2), cy - Math.floor(def.h / 2));
   }
 
   private setGhost(cx: number, cy: number): void {
@@ -167,9 +245,11 @@ export class Build extends Phaser.Scene {
       const min = chk.digMinutes + chk.buildMinutes;
       lines.push(t(chk.rockCells ? 'build.costRock' : 'build.cost', { min }));
       if (run.mods.probe) lines.push(t(chk.unstable ? 'build.probe.weak' : 'build.probe.firm'));
-      lines.push(t('room.place'));
+      lines.push(t(run.rooms.some((r) => !r.collapsed) ? 'room.place' : 'build.start'));
     } else lines.push(t(chk.reason ?? 'opt.cant'));
-    this.showToolInfo(lines.join('\n'));
+    // Sem a descrição longa: aqui o que importa é o custo e o próximo passo.
+    this.info.setText(`${t(`room.${type}`)}\n${lines.join('\n')}`);
+    this.updateFooter();
   }
 
   private tap(cx: number, cy: number, p: Phaser.Input.Pointer): void {
@@ -177,17 +257,22 @@ export class Build extends Phaser.Scene {
     if ((ROOM_TYPES as string[]).includes(tool)) {
       const def = BALANCE.rooms[tool as RoomType];
       const inGhost = this.ghost && cx >= this.ghost.x && cx < this.ghost.x + def.w && cy >= this.ghost.y && cy < this.ghost.y + def.h;
-      // Mouse constrói direto (o fantasma já seguia o cursor); toque pede confirmação.
+      // Mouse constrói direto (o fantasma já seguia o cursor); no toque, tocar
+      // no fantasma constrói e tocar fora move o fantasma para lá.
       if (this.ghost && (inGhost || !p.wasTouch)) {
-        const g = this.ghost;
-        const r = store.dispatch({ t: 'place', room: tool as RoomType, x: g.x, y: g.y });
-        this.feedback(r.ok, r.reason, 'build', g.x, g.y);
-        if (r.ok) {
-          this.ghost = null;
-          this.view.clearGhost();
-          this.view.shake(120, 0.003);
-        }
-      } else this.setGhost(cx, cy);
+        this.placeGhost();
+        return;
+      }
+      // Toque fora: centraliza a sala no dedo e, se não couber, encaixa na vaga verde mais próxima.
+      const ax = cx - Math.floor(def.w / 2);
+      const ay = cy - Math.floor(def.h / 2);
+      if (checkPlacement(store.run!, tool as RoomType, ax, ay).ok) this.setGhost(ax, ay);
+      else {
+        const spots = this.validSpots(tool as RoomType);
+        const best = spots.length ? nearest(spots, ax, ay) : undefined;
+        if (best && Math.abs(best.x - ax) + Math.abs(best.y - ay) <= 4) this.setGhost(best.x, best.y);
+        else this.setGhost(ax, ay);
+      }
       return;
     }
     const room = this.roomAtCell(cx, cy);
@@ -273,6 +358,12 @@ export class Build extends Phaser.Scene {
       this.dirty = true;
     }
     this.view.sync(run);
+    // Salas mudaram (desabamento, evento): recalcula a zona verde.
+    const sig = this.signature(run);
+    if (sig !== this.roomsSig) {
+      this.roomsSig = sig;
+      if (this.isRoomTool()) this.refreshRoomTool(this.ghost ? { cx: this.ghost.x, cy: this.ghost.y } : undefined);
+    }
     this.view.update(time, delta, store.speed);
     this.top.update(run);
     this.ticker.update(run, time);
@@ -291,4 +382,17 @@ export class Build extends Phaser.Scene {
     this.scene.launch('Event', { from: 'Build', eventId: run.events[0].id });
     this.scene.pause();
   }
+}
+
+function nearest(spots: { x: number; y: number }[], x: number, y: number): { x: number; y: number } {
+  let best = spots[0];
+  let bd = Infinity;
+  for (const s of spots) {
+    const d = Math.abs(s.x - x) + Math.abs(s.y - y) * 1.2;
+    if (d < bd) {
+      bd = d;
+      best = s;
+    }
+  }
+  return best;
 }

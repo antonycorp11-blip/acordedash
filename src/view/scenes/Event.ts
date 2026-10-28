@@ -11,7 +11,7 @@ import { iconKey } from '../art/sprites/icons';
 import { personKey } from '../art/survivors';
 import { store } from '../store';
 import { personName, t, variantOf } from '../text';
-import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes, LEFT, VW } from '../ui/buttons';
 import { missionText } from '../describe';
 
 interface EventData {
@@ -45,7 +45,7 @@ export class EventScene extends Phaser.Scene {
     hiRes(this);
     this.data0 = data;
     const run = store.run!;
-    this.add.rectangle(0, 0, 640, 360, P.ink, 0.72).setOrigin(0, 0).setInteractive();
+    this.add.rectangle(LEFT, 0, VW, 360, P.ink, 0.72).setOrigin(0, 0).setInteractive();
     const ev = data.eventId != null ? run.events.find((e) => e.id === data.eventId) : undefined;
     const em = data.emergencyId != null ? run.emergencies.find((e) => e.id === data.emergencyId) : undefined;
     if (ev) this.showEvent(run, ev);

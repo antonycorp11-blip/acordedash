@@ -2,7 +2,7 @@
 
 import Phaser from 'phaser';
 import { P } from '../art/palette';
-import { Button, drawPanel, txt, type ButtonStyle } from './buttons';
+import { Button, drawPanel, txt, viewCenterX, VW, type ButtonStyle } from './buttons';
 
 export interface ModalButton {
   label: string;
@@ -18,10 +18,11 @@ export class Modal {
   readonly y: number;
 
   constructor(scene: Phaser.Scene, public w: number, public h: number, title?: string, body?: string, buttons: ModalButton[] = [], depth = 200) {
-    this.x = Math.round((640 - w) / 2);
+    const mid = viewCenterX(scene);
+    this.x = Math.round(mid - w / 2);
     this.y = Math.round((360 - h) / 2);
     this.root = scene.add.container(0, 0).setDepth(depth);
-    const dim = scene.add.rectangle(0, 0, 640, 360, P.ink, 0.7).setOrigin(0, 0).setInteractive();
+    const dim = scene.add.rectangle(mid - VW / 2 - 10, 0, VW + 20, 360, P.ink, 0.7).setOrigin(0, 0).setInteractive();
     const g = scene.add.graphics();
     drawPanel(g, this.x, this.y, w, h, P.night);
     this.root.add([dim, g]);

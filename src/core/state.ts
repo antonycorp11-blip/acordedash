@@ -307,6 +307,7 @@ export interface Settings {
   colorblind: boolean;
   reduceMotion: boolean;
   defaultSpeed: number;
+  fullscreen: boolean;
 }
 
 export interface MetaProgress {

@@ -8,7 +8,7 @@ import { P, statusColor } from '../art/palette';
 import { iconKey } from '../art/sprites/icons';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes, LEFT, VW } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 export class Skills extends Phaser.Scene {
@@ -28,7 +28,7 @@ export class Skills extends Phaser.Scene {
     this.nodes.clear();
     this.marks.clear();
     this.selected = null;
-    this.add.rectangle(0, 0, 640, 360, P.ink).setOrigin(0, 0);
+    this.add.rectangle(LEFT, 0, VW, 360, P.ink).setOrigin(0, 0);
     txt(this, 10, 6, t('skills.title'), 22, P.yellow);
     this.points = txt(this, 630, 8, '', 18, P.paper).setOrigin(1, 0);
     const colW = 124;

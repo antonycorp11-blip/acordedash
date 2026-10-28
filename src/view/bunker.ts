@@ -99,6 +99,7 @@ export class BunkerView {
   private peopleLayer: Phaser.GameObjects.Container;
   private fxLayer: Phaser.GameObjects.Container;
   readonly cursor: Phaser.GameObjects.Graphics;
+  private zones: Phaser.GameObjects.Graphics;
   private ambient?: Phaser.GameObjects.Particles.ParticleEmitter;
   private ambientKind = '';
   private rooms = new Map<number, RoomVisual>();
@@ -133,7 +134,8 @@ export class BunkerView {
     this.fxLayer = scene.add.container(0, 0);
     this.peopleLayer = scene.add.container(0, 0);
     this.cursor = scene.add.graphics();
-    this.world.add([this.skyImg, this.groundImg, this.darkImg, this.glowLayer, this.roomLayer, this.doorsG, this.peopleLayer, this.fxLayer, this.cursor]);
+    this.zones = scene.add.graphics();
+    this.world.add([this.skyImg, this.groundImg, this.darkImg, this.glowLayer, this.roomLayer, this.doorsG, this.peopleLayer, this.fxLayer, this.zones, this.cursor]);
     this.minZoom = Math.min(1, Math.min(vp.w / this.worldW, vp.h / this.worldH));
     this.zoom = 1;
     this.applyCamera();
@@ -236,7 +238,7 @@ export class BunkerView {
     const sc = this.scene;
     sc.input.addPointer(1);
     sc.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
-      const q = ptr(p);
+      const q = ptr(p, sc);
       if (over.length || !this.inViewport(q.x, q.y) || this.input.blocked?.(q.x, q.y)) return;
       this.pointers.set(p.id, { x: q.x, y: q.y });
       if (this.pointers.size === 2) {
@@ -254,7 +256,7 @@ export class BunkerView {
       }
     });
     sc.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      const q = ptr(p);
+      const q = ptr(p, sc);
       const prev = this.pointers.get(p.id);
       if (!prev) {
         if (!p.isDown && !p.wasTouch && this.inViewport(q.x, q.y) && !sc.input.hitTestPointer(p).length && !this.input.blocked?.(q.x, q.y)) {
@@ -296,7 +298,7 @@ export class BunkerView {
       }
     });
     const up = (p: Phaser.Input.Pointer) => {
-      const q = ptr(p);
+      const q = ptr(p, sc);
       const had = this.pointers.has(p.id);
       const wasSingle = this.pointers.size === 1;
       const wasPinch = this.pointers.size === 2;
@@ -313,7 +315,7 @@ export class BunkerView {
     sc.input.on('pointerup', up);
     sc.input.on('pointerupoutside', up);
     sc.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
-      const q = ptr(p);
+      const q = ptr(p, sc);
       if (this.inViewport(q.x, q.y) && !this.input.blocked?.(q.x, q.y)) this.zoomTo(q.x, q.y, this.zoom + (dy > 0 ? -0.5 : 0.5));
     });
     sc.input.mouse?.disableContextMenu();
@@ -811,6 +813,56 @@ export class BunkerView {
       g.lineBetween(x, y, x + w * TILE, y + h * TILE);
       g.lineBetween(x + w * TILE, y, x, y + h * TILE);
     }
+  }
+
+  /** Pinta de verde as áreas onde a sala escolhida pode ser construída. */
+  drawZones(rects: { x: number; y: number; w: number; h: number }[]): void {
+    const g = this.zones;
+    g.clear();
+    if (!rects.length) return;
+    g.fillStyle(P.green, 0.16);
+    const seen = new Set<string>();
+    for (const r of rects) {
+      for (let y = r.y; y < r.y + r.h; y++) {
+        for (let x = r.x; x < r.x + r.w; x++) {
+          const k = `${x},${y}`;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          const p = this.cellLocal(x, y);
+          g.fillRect(p.x, p.y, TILE, TILE);
+        }
+      }
+    }
+    // Contorno pontilhado de cada célula livre, para dar leitura de grade.
+    g.lineStyle(0.5, P.green, 0.45);
+    for (const k of seen) {
+      const [x, y] = k.split(',').map(Number);
+      const p = this.cellLocal(x, y);
+      g.strokeRect(p.x + 1, p.y + 1, TILE - 2, TILE - 2);
+    }
+  }
+
+  clearZones(): void {
+    this.zones.clear();
+  }
+
+  /** Célula no centro da janela do bunker. */
+  centerCell(): { cx: number; cy: number } {
+    return this.screenToCell(this.vp.x + this.vp.w / 2, this.vp.y + this.vp.h / 2);
+  }
+
+  /** Move a câmera para mostrar uma área (em células), se ela estiver fora da janela. */
+  reveal(cx: number, cy: number, w: number, h: number): void {
+    const { x, y } = this.cellLocal(cx, cy);
+    const sx0 = this.world.x + x * this.zoom;
+    const sy0 = this.world.y + y * this.zoom;
+    const sx1 = sx0 + w * TILE * this.zoom;
+    const sy1 = sy0 + h * TILE * this.zoom;
+    const m = 12;
+    if (sx0 >= this.vp.x + m && sx1 <= this.vp.x + this.vp.w - m && sy0 >= this.vp.y + m && sy1 <= this.vp.y + this.vp.h - m) return;
+    this.world.x = this.vp.x + this.vp.w / 2 - (x + (w * TILE) / 2) * this.zoom;
+    this.world.y = this.vp.y + this.vp.h / 2 - (y + (h * TILE) / 2) * this.zoom;
+    this.applyCamera();
   }
 
   highlightRoom(r: Room | undefined): void {

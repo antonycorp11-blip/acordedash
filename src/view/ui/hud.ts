@@ -13,7 +13,7 @@ import { P, statusColor } from '../art/palette';
 import { iconKey } from '../art/sprites/icons';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, drawPanel, txt } from './buttons';
+import { Button, drawPanel, txt, VW } from './buttons';
 
 export const TOP_H = 36;
 
@@ -50,9 +50,9 @@ export class TopBar {
 
   constructor(private scene: Phaser.Scene, private mode: 'build' | 'survival', onMenu: () => void, onSecret: () => void, onGaugeTap?: (k: string) => void) {
     this.g = scene.add.graphics().setDepth(50);
-    drawPanel(this.g, 0, 0, 640, TOP_H, P.night);
+    drawPanel(this.g, 0, 0, VW, TOP_H, P.night);
     this.g.fillStyle(mode === 'build' ? P.clay : P.orange);
-    this.g.fillRect(2, TOP_H - 3, 636, 1);
+    this.g.fillRect(2, TOP_H - 3, VW - 4, 1);
     // Fundo do grupo de velocidade.
     this.g.fillStyle(0x16111f);
     this.g.fillRect(157, 2, 158, 32);
@@ -97,7 +97,7 @@ export class TopBar {
         this.counts.push(txt(scene, x + 20, 9, '', 18).setDepth(51));
       });
     }
-    this.menu = new Button(scene, 600, 2, 36, 32, { icon: iconKey(scene, 'menu') }, onMenu).setDepth(51);
+    this.menu = new Button(scene, VW - 40, 2, 36, 32, { icon: iconKey(scene, 'menu') }, onMenu).setDepth(51);
   }
 
   update(run: RunState): void {

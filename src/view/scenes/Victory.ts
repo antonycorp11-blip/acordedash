@@ -7,7 +7,7 @@ import { P } from '../art/palette';
 import { personKey } from '../art/survivors';
 import { store } from '../store';
 import { t, variantOf } from '../text';
-import { Button, txt, hiRes } from '../ui/buttons';
+import { Button, txt, hiRes, LEFT, VW } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 export class Victory extends Phaser.Scene {
@@ -31,14 +31,14 @@ export class Victory extends Phaser.Scene {
         const top = Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.ValueToColor(P.ink), Phaser.Display.Color.ValueToColor(P.blueDark), 60, k);
         const bot = Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.ValueToColor(P.night), Phaser.Display.Color.ValueToColor(P.orange), 60, k);
         sky.fillStyle(Phaser.Display.Color.GetColor(top.r, top.g, top.b));
-        sky.fillRect(0, 0, 640, 200);
+        sky.fillRect(LEFT, 0, VW, 200);
         sky.fillStyle(Phaser.Display.Color.GetColor(bot.r, bot.g, bot.b));
-        sky.fillRect(0, 200, 640, 80);
+        sky.fillRect(LEFT, 200, VW, 80);
         sun.y = 300 - k * 1.6;
       },
     });
-    this.add.rectangle(0, 270, 640, 90, P.dirtDark).setOrigin(0, 0);
-    this.add.rectangle(0, 268, 640, 4, P.ash).setOrigin(0, 0);
+    this.add.rectangle(LEFT, 270, VW, 90, P.dirtDark).setOrigin(0, 0);
+    this.add.rectangle(LEFT, 268, VW, 4, P.ash).setOrigin(0, 0);
     alivePeople(run).forEach((p, i) => {
       this.add.image(260 + i * 20, 270, personKey(this, p.look, p.archetype, 'feliz', i % 2 ? 2 : 0)).setOrigin(0.5, 1).setScale(2 * 0.105);
     });

@@ -174,7 +174,11 @@ export const PT_BR: Record<string, Text> = {
   'room.short.kitchen': 'Cozinha',
   'room.short.reservoir': 'Água',
   'room.short.corridor': 'Corredor',
-  'room.place': 'Toque de novo no fantasma para construir.',
+  'room.place': 'Verde = pode construir. Toque no mapa para mudar o lugar.',
+  'build.here': 'CONSTRUIR',
+  'build.start': 'Comece pelo corredor de entrada, colado na superfície. Já marquei o lugar: toque em CONSTRUIR.',
+  'build.done': 'Pronto, {sala} está de pé! Escolha outra sala na lista: ela precisa encostar numa que já existe.',
+  'build.noSpot': 'Não há lugar para essa sala agora. Ela precisa encostar em outra sala.',
   'room.state.ok': 'Funcionando.',
   'room.state.collapsed': 'Desmoronou. Agora é entulho com história.',
 

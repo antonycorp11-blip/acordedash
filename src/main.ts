@@ -3,6 +3,7 @@
 
 import Phaser from 'phaser';
 import { watchOrientation } from './infra/orientation';
+import { isTouchDevice } from './infra/settings';
 import { PT_BR } from './strings/pt-BR';
 import { audio } from './view/audio/sfx';
 import { Boot } from './view/scenes/Boot';
@@ -22,6 +23,7 @@ import { Survival } from './view/scenes/Survival';
 import { Title } from './view/scenes/Title';
 import { Victory } from './view/scenes/Victory';
 import { store } from './view/store';
+import { VH, VW } from './view/ui/buttons';
 
 async function loadFonts(): Promise<void> {
   if (!('fonts' in document)) return;
@@ -37,8 +39,8 @@ async function start(): Promise<void> {
     type: Phaser.AUTO,
     parent: 'game',
     // Desenhado em 640×360 e renderizado em 2× (ver UI_ZOOM); a arte é vetorial em alta resolução.
-    width: 1280,
-    height: 720,
+    width: VW * 2,
+    height: VH * 2,
     pixelArt: false,
     antialias: true,
     roundPixels: false,
@@ -59,7 +61,17 @@ async function start(): Promise<void> {
   const saveNow = () => store.save();
   document.addEventListener('visibilitychange', () => document.hidden && saveNow());
   window.addEventListener('pagehide', saveNow);
-  window.addEventListener('pointerdown', () => audio.unlock(), { passive: true });
+  window.addEventListener('pointerdown', () => {
+    audio.unlock();
+    // Tela cheia no primeiro toque em celular (o navegador exige um gesto).
+    if (isTouchDevice() && !game.scale.isFullscreen && store.settings.fullscreen) {
+      try {
+        game.scale.startFullscreen();
+      } catch {
+        // iPhone não permite: segue em janela.
+      }
+    }
+  }, { passive: true });
   window.addEventListener('keydown', () => audio.unlock());
   // Só em desenvolvimento: acesso ao estado para testes automatizados no navegador.
   if (import.meta.env.DEV) Object.assign(window, { __store: store, __game: game });

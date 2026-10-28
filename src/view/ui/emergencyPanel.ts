@@ -10,11 +10,11 @@ import { personKey } from '../art/survivors';
 import { missionText } from '../describe';
 import { store } from '../store';
 import { personName, t } from '../text';
-import { Button, drawPanel, txt } from './buttons';
+import { Button, drawPanel, txt, VW } from './buttons';
 import { TOP_H } from './hud';
 import { ScrollArea } from './scroll';
 
-export const PANEL_X = 488;
+export const PANEL_X = VW - 152;
 type Tab = 'alerts' | 'people' | 'power' | 'actions';
 
 const EMG_ICON: Record<string, string> = {
@@ -37,14 +37,14 @@ export class SurvivalPanel {
 
   constructor(private scene: Phaser.Scene, private actions: PanelActions) {
     const g = scene.add.graphics().setDepth(45);
-    drawPanel(g, PANEL_X, TOP_H, 640 - PANEL_X, 360 - TOP_H, P.night);
+    drawPanel(g, PANEL_X, TOP_H, VW - PANEL_X, 360 - TOP_H, P.night);
     const tabs: [Tab, string][] = [['alerts', 'alert'], ['people', 'person'], ['power', 'bolt'], ['actions', 'wrench']];
     tabs.forEach(([k, icon], i) => {
       const b = new Button(scene, PANEL_X + 3 + i * 37, TOP_H + 3, 36, 34, { icon: iconKey(scene, icon) }, () => this.setTab(k)).setDepth(46);
       this.tabBtns.set(k, b);
     });
     this.alertBadge = txt(scene, PANEL_X + 32, TOP_H + 1, '', 14, P.white, { backgroundColor: '#d0453a' }).setDepth(47).setOrigin(0.5, 0);
-    this.scroll = new ScrollArea(scene, PANEL_X + 3, TOP_H + 42, 640 - PANEL_X - 6, 360 - TOP_H - 45);
+    this.scroll = new ScrollArea(scene, PANEL_X + 3, TOP_H + 42, VW - PANEL_X - 6, 360 - TOP_H - 45);
     this.scroll.content.setDepth(46);
     this.setTab('alerts');
   }

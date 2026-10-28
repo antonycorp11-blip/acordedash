@@ -7,7 +7,7 @@ import { P } from '../art/palette';
 import { BunkerView } from '../bunker';
 import { store } from '../store';
 import { t, variantOf } from '../text';
-import { txt, hiRes } from '../ui/buttons';
+import { txt, hiRes, VW } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 export class Countdown extends Phaser.Scene {
@@ -23,20 +23,20 @@ export class Countdown extends Phaser.Scene {
   }
 
   create(): void {
-    hiRes(this);
+    hiRes(this, true);
     fadeIn(this);
     audio.setMood('none');
     this.done = false;
     this.left = BALANCE.time.countdownSeconds;
     this.lastSecond = -1;
     const run = store.run!;
-    this.view = new BunkerView(this, { x: 0, y: 0, w: 640, h: 360 }, { dragPans: () => true });
+    this.view = new BunkerView(this, { x: 0, y: 0, w: VW, h: 360 }, { dragPans: () => true });
     this.view.sync(run);
-    this.red = this.add.rectangle(0, 0, 640, 360, P.red, 0).setOrigin(0, 0).setDepth(10);
-    this.add.rectangle(0, 0, 640, 54, P.ink, 0.75).setOrigin(0, 0).setDepth(11);
-    txt(this, 320, 4, t('countdown.title'), 20, P.orange).setOrigin(0.5, 0).setDepth(12);
-    txt(this, 320, 28, t('countdown.text', {}, variantOf(run.seed, 'cd')), 15, P.paper).setOrigin(0.5, 0).setDepth(12);
-    this.number = txt(this, 320, 190, '', 96, P.white, { stroke: '#14101c', strokeThickness: 8 }).setOrigin(0.5).setDepth(12);
+    this.red = this.add.rectangle(0, 0, VW, 360, P.red, 0).setOrigin(0, 0).setDepth(10);
+    this.add.rectangle(0, 0, VW, 54, P.ink, 0.75).setOrigin(0, 0).setDepth(11);
+    txt(this, VW / 2, 4, t('countdown.title'), 20, P.orange).setOrigin(0.5, 0).setDepth(12);
+    txt(this, VW / 2, 28, t('countdown.text', {}, variantOf(run.seed, 'cd')), 15, P.paper).setOrigin(0.5, 0).setDepth(12);
+    this.number = txt(this, VW / 2, 190, '', 96, P.white, { stroke: '#14101c', strokeThickness: 8 }).setOrigin(0.5).setDepth(12);
   }
 
   update(time: number, delta: number): void {

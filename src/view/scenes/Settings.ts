@@ -7,7 +7,7 @@ import { audio } from '../audio/sfx';
 import { P, setColorblind } from '../art/palette';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes, LEFT, VW } from '../ui/buttons';
 import { confirm } from '../ui/modal';
 import { fadeIn, go } from './common';
 
@@ -33,7 +33,7 @@ export class Settings extends Phaser.Scene {
   private draw(): void {
     this.children.removeAll(true);
     const s = store.settings;
-    this.add.rectangle(0, 0, 640, 360, P.ink, this.data0.overlay ? 0.85 : 1).setOrigin(0, 0).setInteractive();
+    this.add.rectangle(LEFT, 0, VW, 360, P.ink, this.data0.overlay ? 0.85 : 1).setOrigin(0, 0).setInteractive();
     const g = this.add.graphics();
     drawPanel(g, 100, 10, 440, 340, P.night);
     txt(this, 320, 16, t('settings.title'), 22, P.yellow).setOrigin(0.5, 0);

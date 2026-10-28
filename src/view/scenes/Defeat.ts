@@ -5,7 +5,7 @@ import { audio } from '../audio/sfx';
 import { P } from '../art/palette';
 import { store } from '../store';
 import { lines, t } from '../text';
-import { Button, txt, hiRes } from '../ui/buttons';
+import { Button, txt, hiRes, LEFT, VW } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 export class Defeat extends Phaser.Scene {
@@ -22,7 +22,7 @@ export class Defeat extends Phaser.Scene {
     audio.setMood('none');
     audio.play('defeat');
     this.speed = 1;
-    this.add.rectangle(0, 0, 640, 360, P.ink).setOrigin(0, 0);
+    this.add.rectangle(LEFT, 0, VW, 360, P.ink).setOrigin(0, 0);
     // Relógio andando para trás.
     const face = this.add.graphics();
     face.fillStyle(P.paper);

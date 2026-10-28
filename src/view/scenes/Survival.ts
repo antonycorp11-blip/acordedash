@@ -41,7 +41,7 @@ export class Survival extends Phaser.Scene {
   }
 
   create(): void {
-    hiRes(this);
+    hiRes(this, true);
     fadeIn(this);
     audio.setMood('survival');
     this.repairing = false;
@@ -109,7 +109,7 @@ export class Survival extends Phaser.Scene {
       this.view.clearGhost();
       return;
     }
-    const pp = ptr(p);
+    const pp = ptr(p, this);
     const pid = this.view.personAt(pp.x, pp.y);
     if (pid != null) {
       this.openPerson(pid);

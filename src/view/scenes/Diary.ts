@@ -6,7 +6,7 @@ import { audio } from '../audio/sfx';
 import { P } from '../art/palette';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes, LEFT, VW } from '../ui/buttons';
 import { ScrollArea } from '../ui/scroll';
 import { fadeIn, go } from './common';
 
@@ -22,7 +22,7 @@ export class Diary extends Phaser.Scene {
   create(): void {
     hiRes(this);
     fadeIn(this);
-    this.add.rectangle(0, 0, 640, 360, P.ink).setOrigin(0, 0);
+    this.add.rectangle(LEFT, 0, VW, 360, P.ink).setOrigin(0, 0);
     const g = this.add.graphics();
     drawPanel(g, 6, 6, 200, 348, P.night);
     g.fillStyle(P.paper);

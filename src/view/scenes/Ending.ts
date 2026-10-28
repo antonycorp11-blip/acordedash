@@ -9,7 +9,7 @@ import { roomKey } from '../art/sprites/rooms';
 import { personKey } from '../art/survivors';
 import { store } from '../store';
 import { lines, personName, t } from '../text';
-import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes, LEFT, VW } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 interface EndingData {
@@ -58,12 +58,12 @@ export class Ending extends Phaser.Scene {
     for (let i = 0; i < 10; i++) {
       const c = Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.ValueToColor(a), Phaser.Display.Color.ValueToColor(b), 9, i);
       g.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b));
-      g.fillRect(0, i * 24, 640, 24);
+      g.fillRect(LEFT, i * 24, VW, 24);
     }
     g.fillStyle(P.dirtDark);
-    g.fillRect(0, 240, 640, 120);
+    g.fillRect(LEFT, 240, VW, 120);
     g.fillStyle(e === 'coletivo' ? P.grass : P.ash);
-    g.fillRect(0, 238, 640, 4);
+    g.fillRect(LEFT, 238, VW, 4);
     const people = data.survivors ?? [];
     switch (e) {
       case 'coletivo': {
