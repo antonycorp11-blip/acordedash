@@ -7,7 +7,7 @@ import { audio } from '../audio/sfx';
 import { P, setColorblind } from '../art/palette';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, drawPanel, txt } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
 import { confirm } from '../ui/modal';
 import { fadeIn, go } from './common';
 
@@ -24,6 +24,7 @@ export class Settings extends Phaser.Scene {
   }
 
   create(data: SettingsData): void {
+    hiRes(this);
     this.data0 = data;
     if (!data.overlay) fadeIn(this);
     this.draw();

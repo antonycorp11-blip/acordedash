@@ -1,29 +1,47 @@
-// Botões e textos básicos desenhados dentro do Phaser.
+// Botões, painéis e textos básicos desenhados dentro do Phaser.
 
 import Phaser from 'phaser';
 import { audio } from '../audio/sfx';
 import { hex, P } from '../art/palette';
 import { store } from '../store';
 
-export const FONT = "'VT323', monospace";
-export const TITLE_FONT = "'Press Start 2P', monospace";
+/** Fonte de interface (legível em tamanho pequeno). */
+export const FONT = "'Pixelify Sans', monospace";
+/** Fonte dos textos narrativos (diário, eventos, legista). */
+export const BODY_FONT = "'VT323', monospace";
+/** O jogo é desenhado em 640×360, mas renderizado em 1280×720 (câmera 2×) para texto nítido. */
+export const UI_ZOOM = 2;
 /** Área mínima de toque em pixels do jogo (≈ 44px de tela em celular). */
 export const MIN_TOUCH = 40;
 
+/** Liga a câmera 2× de uma cena (chamar no começo de cada `create`). */
+export function hiRes(scene: Phaser.Scene): void {
+  scene.cameras.main.setZoom(UI_ZOOM).centerOn(320, 180);
+}
+
+/** Posição do ponteiro no espaço 640×360 do jogo. */
+export function ptr(p: { x: number; y: number }): { x: number; y: number } {
+  return { x: p.x / UI_ZOOM, y: p.y / UI_ZOOM };
+}
+
 export function fontSize(base: number): number {
-  return Math.round(base * (store.settings.bigText ? 1.25 : 1));
+  return Math.round(base * (store.settings.bigText ? 1.2 : 1));
 }
 
 export function txt(
   scene: Phaser.Scene, x: number, y: number, str: string, size = 16, color: number = P.paper,
-  opts: Partial<Phaser.Types.GameObjects.Text.TextStyle> & { wrap?: number; title?: boolean } = {},
+  opts: Partial<Phaser.Types.GameObjects.Text.TextStyle> & { wrap?: number; title?: boolean; body?: boolean } = {},
 ): Phaser.GameObjects.Text {
-  const { wrap, title, ...rest } = opts;
+  const { wrap, title, body, ...rest } = opts;
+  // Os tamanhos do código foram pensados para a VT323; a Pixelify é mais larga.
+  const px = body ? fontSize(size) : Math.round(fontSize(size) * (title ? 0.85 : 0.74));
   const t = scene.add.text(x, y, str, {
-    fontFamily: title ? TITLE_FONT : FONT,
-    fontSize: `${title ? size : fontSize(size)}px`,
+    fontFamily: body ? BODY_FONT : FONT,
+    fontSize: `${px}px`,
+    fontStyle: title ? '700' : '400',
     color: hex(color),
-    lineSpacing: title ? 6 : 0,
+    resolution: UI_ZOOM,
+    lineSpacing: body ? 0 : 2,
     ...(wrap ? { wordWrap: { width: wrap, useAdvancedWrap: true } } : {}),
     ...rest,
   });
@@ -32,12 +50,12 @@ export function txt(
 
 export type ButtonStyle = 'normal' | 'primary' | 'danger' | 'ghost' | 'dark';
 
-const STYLE: Record<ButtonStyle, { fill: number; line: number; text: number; hi: number }> = {
-  normal: { fill: P.shadow, line: P.ink, text: P.paper, hi: P.dusk },
-  primary: { fill: P.orangeDark, line: P.ink, text: P.white, hi: P.orange },
-  danger: { fill: P.redDark, line: P.ink, text: P.white, hi: P.red },
-  ghost: { fill: P.night, line: P.shadow, text: P.paperDark, hi: P.shadow },
-  dark: { fill: P.ink, line: P.shadow, text: P.paper, hi: P.night },
+const STYLE: Record<ButtonStyle, { fill: number; top: number; bottom: number; text: number; hi: number }> = {
+  normal: { fill: 0x2e2540, top: 0x4a3d63, bottom: 0x1a1426, text: P.paper, hi: 0x3d3152 },
+  primary: { fill: 0xc4622b, top: 0xf0974f, bottom: 0x7a3417, text: P.white, hi: 0xd8743a },
+  danger: { fill: 0x9b3330, top: 0xd0574d, bottom: 0x581b1c, text: P.white, hi: 0xb0403a },
+  ghost: { fill: 0x1e1829, top: 0x2e2540, bottom: 0x120e1a, text: P.paperDark, hi: 0x2a2238 },
+  dark: { fill: 0x16111f, top: 0x2a2238, bottom: 0x0b0810, text: P.paper, hi: 0x221a2e },
 };
 
 export interface ButtonOpts {
@@ -51,6 +69,13 @@ export interface ButtonOpts {
   align?: 'center' | 'left';
 }
 
+/** Retângulo com cantos chanfrados de 1 pixel (visual de pixel art). */
+export function bevelRect(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, color: number, alpha = 1): void {
+  g.fillStyle(color, alpha);
+  g.fillRect(x + 1, y, w - 2, h);
+  g.fillRect(x, y + 1, w, h - 2);
+}
+
 export class Button extends Phaser.GameObjects.Container {
   private bg: Phaser.GameObjects.Graphics;
   label?: Phaser.GameObjects.Text;
@@ -60,6 +85,7 @@ export class Button extends Phaser.GameObjects.Container {
   private _disabled = false;
   private styleName: ButtonStyle;
   private hit: Phaser.GameObjects.Zone;
+  private content: Phaser.GameObjects.GameObject[] = [];
 
   constructor(scene: Phaser.Scene, x: number, y: number, public w: number, public h: number, opts: ButtonOpts, onClick: () => void) {
     super(scene, x, y);
@@ -71,20 +97,21 @@ export class Button extends Phaser.GameObjects.Container {
     if (opts.icon) {
       const sc = opts.iconScale ?? 2;
       const iconX = opts.label ? (left ? 6 + 5 * sc : w / 2) : w / 2;
-      const iconY = opts.label && !left ? h / 2 - 7 : h / 2;
-      this.icon = scene.add.image(iconX, iconY, opts.icon).setScale(sc);
+      const iconY = opts.label && !left ? h / 2 - 6 : h / 2;
+      this.icon = scene.add.image(Math.round(iconX), Math.round(iconY), opts.icon).setScale(sc);
       this.add(this.icon);
       if (left) cx = 12 + 10 * sc;
     }
     if (opts.label) {
-      const ly = opts.icon && !left ? h - 9 : opts.sub ? h / 2 - 6 : h / 2;
+      const ly = opts.icon && !left ? h - 8 : opts.sub ? h / 2 - 6 : h / 2;
       this.label = txt(scene, cx, ly, opts.label, opts.size ?? (opts.icon && !left ? 13 : 16), STYLE[this.styleName].text).setOrigin(left ? 0 : 0.5, 0.5);
       this.add(this.label);
     }
     if (opts.sub) {
-      this.sub = txt(scene, cx, h / 2 + 7, opts.sub, 13, P.paperDark).setOrigin(left ? 0 : 0.5, 0.5);
+      this.sub = txt(scene, cx, h / 2 + 7, opts.sub, 13, this.styleName === 'primary' ? P.paper : P.paperDark).setOrigin(left ? 0 : 0.5, 0.5);
       this.add(this.sub);
     }
+    this.content = [this.icon, this.label, this.sub].filter((o): o is NonNullable<typeof o> => !!o);
     this.draw(false);
     // Área de toque generosa, mesmo quando o desenho é menor. Uma zona filha
     // centrada no botão evita o deslocamento de origem dos containers.
@@ -113,24 +140,32 @@ export class Button extends Phaser.GameObjects.Container {
   private draw(pressed: boolean): void {
     const st = STYLE[this.styleName];
     const g = this.bg;
+    const w = this.w;
+    const h = this.h;
     g.clear();
-    const fill = this._disabled ? P.night : pressed || this._selected ? st.hi : st.fill;
-    g.fillStyle(st.line);
-    g.fillRect(0, 0, this.w, this.h);
-    g.fillStyle(fill);
-    g.fillRect(1, 1, this.w - 2, this.h - 2);
-    if (!pressed) {
-      g.fillStyle(0xffffff, 0.08);
-      g.fillRect(1, 1, this.w - 2, 2);
-      g.fillStyle(0x000000, 0.25);
-      g.fillRect(1, this.h - 3, this.w - 2, 2);
+    const dis = this._disabled;
+    const fill = dis ? 0x1c1724 : pressed || this._selected ? st.hi : st.fill;
+    // Contorno, sombra de base e brilho de topo.
+    bevelRect(g, 0, 0, w, h, P.ink);
+    bevelRect(g, 1, 1, w - 2, h - 2, dis ? 0x120e18 : st.bottom);
+    bevelRect(g, 1, 1, w - 2, h - (pressed ? 2 : 4), fill);
+    if (!pressed && !dis) {
+      g.fillStyle(st.top);
+      g.fillRect(2, 1, w - 4, 1);
+      g.fillStyle(0xffffff, 0.05);
+      g.fillRect(2, 2, w - 4, Math.floor((h - 6) / 2));
     }
     if (this._selected) {
       g.lineStyle(1, P.yellow);
-      g.strokeRect(1.5, 1.5, this.w - 3, this.h - 3);
+      g.strokeRect(1.5, 1.5, w - 3, h - 4);
     }
-    this.label?.setAlpha(this._disabled ? 0.45 : 1);
-    this.icon?.setAlpha(this._disabled ? 0.45 : 1);
+    const dy = pressed ? 1 : 0;
+    for (const o of this.content) {
+      const obj = o as Phaser.GameObjects.Image & { baseY?: number };
+      obj.baseY ??= obj.y;
+      obj.y = obj.baseY + dy;
+      obj.setAlpha(dis ? 0.4 : 1);
+    }
   }
 
   setSelected(v: boolean): this {
@@ -150,7 +185,7 @@ export class Button extends Phaser.GameObjects.Container {
   }
 
   setLabel(s: string): this {
-    this.label?.setText(s);
+    if (this.label && this.label.text !== s) this.label.setText(s);
     return this;
   }
 
@@ -167,11 +202,11 @@ export function panel(scene: Phaser.Scene, x: number, y: number, w: number, h: n
   return g;
 }
 
+/** Painel: contorno escuro, borda clara interna, fundo e sombra embaixo. */
 export function drawPanel(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, fill: number = P.night, alpha = 1): void {
-  g.fillStyle(P.ink, alpha);
-  g.fillRect(x, y, w, h);
-  g.fillStyle(fill, alpha);
-  g.fillRect(x + 2, y + 2, w - 4, h - 4);
-  g.fillStyle(0xffffff, 0.06 * alpha);
+  bevelRect(g, x, y, w, h, P.ink, alpha);
+  bevelRect(g, x + 1, y + 1, w - 2, h - 2, 0x3d3152, alpha);
+  bevelRect(g, x + 2, y + 2, w - 4, h - 4, fill, alpha);
+  g.fillStyle(0xffffff, 0.04 * alpha);
   g.fillRect(x + 2, y + 2, w - 4, 1);
 }

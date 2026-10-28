@@ -13,7 +13,7 @@ import { BunkerView } from '../bunker';
 import { personSummary, roomSignals } from '../describe';
 import { store } from '../store';
 import { t, variantOf } from '../text';
-import { Button, txt } from '../ui/buttons';
+import { Button, txt, hiRes, ptr } from '../ui/buttons';
 import { PANEL_X, SurvivalPanel } from '../ui/emergencyPanel';
 import { Clock, levels, TOP_H, TopBar } from '../ui/hud';
 import { confirm, Modal } from '../ui/modal';
@@ -41,6 +41,7 @@ export class Survival extends Phaser.Scene {
   }
 
   create(): void {
+    hiRes(this);
     fadeIn(this);
     audio.setMood('survival');
     this.repairing = false;
@@ -108,7 +109,8 @@ export class Survival extends Phaser.Scene {
       this.view.clearGhost();
       return;
     }
-    const pid = this.view.personAt(p.x, p.y);
+    const pp = ptr(p);
+    const pid = this.view.personAt(pp.x, pp.y);
     if (pid != null) {
       this.openPerson(pid);
       return;

@@ -7,7 +7,7 @@ import { P, statusColor } from '../art/palette';
 import { BunkerView, SKY_H } from '../bunker';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, drawPanel, txt } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
 import { go } from './common';
 
 export class Explosion extends Phaser.Scene {
@@ -16,6 +16,7 @@ export class Explosion extends Phaser.Scene {
   }
 
   create(data: { prev?: RunState }): void {
+    hiRes(this);
     const run = store.run!;
     const view = new BunkerView(this, { x: 0, y: 0, w: 640, h: 360 }, { dragPans: () => true });
     view.sync(data.prev ?? run);

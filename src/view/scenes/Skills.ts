@@ -8,7 +8,7 @@ import { P, statusColor } from '../art/palette';
 import { iconKey } from '../art/sprites/icons';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, drawPanel, txt } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 export class Skills extends Phaser.Scene {
@@ -23,6 +23,7 @@ export class Skills extends Phaser.Scene {
   }
 
   create(): void {
+    hiRes(this);
     fadeIn(this);
     this.nodes.clear();
     this.marks.clear();
@@ -38,7 +39,7 @@ export class Skills extends Phaser.Scene {
       txt(this, x + colW / 2, 36, t(`branch.${b}`), 17, P.orange).setOrigin(0.5, 0);
       SKILLS.filter((s) => s.branch === b).forEach((s, i) => {
         const btn = new Button(this, x + 4, 56 + i * 35, colW - 8, 33, { label: t(`skill.${s.id}`), size: 13, align: 'left' }, () => this.select(s.id));
-        btn.label?.setWordWrapWidth(colW - 30).setLineSpacing(-4);
+        btn.label?.setWordWrapWidth(colW - 30).setLineSpacing(0);
         this.nodes.set(s.id, btn);
       });
     });

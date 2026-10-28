@@ -9,7 +9,7 @@ import { roomKey } from '../art/sprites/rooms';
 import { personKey } from '../art/survivors';
 import { store } from '../store';
 import { lines, personName, t } from '../text';
-import { Button, drawPanel, txt } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 interface EndingData {
@@ -25,6 +25,7 @@ export class Ending extends Phaser.Scene {
   }
 
   create(data: EndingData): void {
+    hiRes(this);
     fadeIn(this);
     audio.setMood('menu');
     audio.play('victory');

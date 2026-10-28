@@ -38,5 +38,9 @@ export function fxTextures(scene: Phaser.Scene): void {
   makeTexture(scene, 'fx_px', 1, 1, (p) => p.px(0, 0, P.white));
   makeTexture(scene, 'fx_led', 2, 2, (p) => p.rect(0, 0, 2, 2, P.green));
   makeTexture(scene, 'fx_ledred', 2, 2, (p) => p.rect(0, 0, 2, 2, P.red));
+  makeTexture(scene, 'fx_shadow', 10, 3, (p) => {
+    p.rect(1, 0, 8, 3, P.ink, 0.45);
+    p.rect(0, 1, 10, 1, P.ink, 0.45);
+  });
   makeTexture(scene, 'fx_flash', 4, 4, (p) => p.rect(0, 0, 4, 4, P.white));
 }

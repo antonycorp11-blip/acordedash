@@ -50,7 +50,12 @@ export class TopBar {
 
   constructor(private scene: Phaser.Scene, private mode: 'build' | 'survival', onMenu: () => void, onSecret: () => void, onGaugeTap?: (k: string) => void) {
     this.g = scene.add.graphics().setDepth(50);
-    drawPanel(this.g, 0, 0, 640, TOP_H, mode === 'build' ? P.dirtDark : P.night);
+    drawPanel(this.g, 0, 0, 640, TOP_H, P.night);
+    this.g.fillStyle(mode === 'build' ? P.clay : P.orange);
+    this.g.fillRect(2, TOP_H - 3, 636, 1);
+    // Fundo do grupo de velocidade.
+    this.g.fillStyle(0x16111f);
+    this.g.fillRect(157, 2, 158, 32);
     this.time = txt(scene, 8, 3, '', 18, P.paper).setDepth(51);
     this.sub = txt(scene, 8, 19, '', 13, P.paperDark).setDepth(51);
     // Toque escondido: cinco toques rápidos no relógio abrem o modo desenvolvedor.
@@ -78,7 +83,8 @@ export class TopBar {
         const x = 318 + i * 52;
         const icon = scene.add.image(x + 8, 18, iconKey(scene, ic[k])).setScale(1.4).setDepth(51);
         const pips: Phaser.GameObjects.Rectangle[] = [];
-        for (let j = 0; j < 4; j++) pips.push(scene.add.rectangle(x + 18 + j * 7, 25, 5, 8, P.shadow).setOrigin(0, 1).setDepth(51));
+        scene.add.rectangle(x + 17, 13, 30, 10, P.ink).setOrigin(0, 0).setDepth(51);
+        for (let j = 0; j < 4; j++) pips.push(scene.add.rectangle(x + 18 + j * 7, 22, 6, 8, 0x2a2238).setOrigin(0, 1).setDepth(51));
         const zone = scene.add.zone(x, 0, 50, TOP_H).setOrigin(0, 0).setInteractive().setDepth(52);
         zone.on('pointerup', () => onGaugeTap?.(k));
         this.gauges.push({ key: k, pips, icon, zone });
@@ -116,8 +122,7 @@ export class TopBar {
         const v = lv[gg.key];
         const color = v <= 1 ? statusColor('bad') : v === 2 ? statusColor('warn') : statusColor('good');
         gg.pips.forEach((p, j) => {
-          p.fillColor = j < v ? color : P.shadow;
-          p.height = 4 + j * 1.5;
+          p.fillColor = j < v ? color : 0x2a2238;
         });
         if (gg.key === 'morale') gg.icon.setTexture(iconKey(this.scene, v >= 3 ? 'happy' : v >= 2 ? 'meh' : 'sad'));
         // Medidor no fundo pisca para chamar atenção.

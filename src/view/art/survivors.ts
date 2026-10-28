@@ -4,11 +4,11 @@
 import Phaser from 'phaser';
 import type { Archetype } from '../../core/state';
 import { HAIR, P, SKIN, shade } from './palette';
-import { makeTexture, type Pix } from './pixel';
+import { makeTexture, outlineCanvas, type Pix } from './pixel';
 
 export type Expression = 'ok' | 'feliz' | 'medo' | 'raiva' | 'doente';
-export const PERSON_W = 12;
-export const PERSON_H = 16;
+export const PERSON_W = 14;
+export const PERSON_H = 18;
 
 const CLOTHES: Record<Archetype | 'viajante', number> = {
   viajante: P.dirtLight, hipocondriaco: P.teal, coach: P.red, sogra: P.purple,
@@ -20,8 +20,14 @@ const CLOTHES: Record<Archetype | 'viajante', number> = {
  * A chave inclui tudo que muda o desenho, então cada variação é criada uma vez.
  */
 export function personKey(scene: Phaser.Scene, look: number, arch: Archetype | 'viajante', expr: Expression, frame: number): string {
-  const key = `p_${look}_${arch}_${expr}_${frame}`;
-  return makeTexture(scene, key, PERSON_W, PERSON_H, (p) => drawPerson(p, look, arch, expr, frame));
+  const key = `p2_${look}_${arch}_${expr}_${frame}`;
+  return makeTexture(scene, key, PERSON_W, PERSON_H, (p) => {
+    // Desenha com 1px de margem e contorna a silhueta inteira.
+    p.ctx.translate(1, 1);
+    drawPerson(p, look, arch, expr, frame);
+    p.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    outlineCanvas(p.ctx, PERSON_W, PERSON_H, P.ink);
+  });
 }
 
 function drawPerson(p: Pix, look: number, arch: Archetype | 'viajante', expr: Expression, frame: number): void {
@@ -46,9 +52,9 @@ function drawPerson(p: Pix, look: number, arch: Archetype | 'viajante', expr: Ex
   const bodyTop = 7 + oy;
   const bodyH = child ? 3 : 5;
   p.rect(3, bodyTop, 6, bodyH + (arch === 'sogra' || arch === 'religioso' ? 2 : 0), cloth);
-  p.vline(2, bodyTop, bodyH, P.ink);
-  p.vline(9, bodyTop, bodyH, P.ink);
+  p.vline(8, bodyTop, bodyH, dark);
   p.hline(3, bodyTop + bodyH - 1, 6, dark);
+  p.hline(3, bodyTop, 5, shade(cloth, 1.2));
 
   // Braços: no gesto, um braço sobe (expressões exageradas).
   p.rect(1, bodyTop + 1, 1, 3, skin);

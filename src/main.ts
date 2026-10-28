@@ -25,7 +25,7 @@ import { store } from './view/store';
 
 async function loadFonts(): Promise<void> {
   if (!('fonts' in document)) return;
-  const wait = Promise.all([document.fonts.load("16px 'VT323'"), document.fonts.load("12px 'Press Start 2P'")]);
+  const wait = Promise.all([document.fonts.load("16px 'VT323'"), document.fonts.load("12px 'Pixelify Sans'"), document.fonts.load("bold 12px 'Pixelify Sans'")]);
   // Sem rede, segue com a fonte do sistema depois de um instante.
   await Promise.race([wait, new Promise((r) => setTimeout(r, 2500))]).catch(() => undefined);
 }
@@ -36,8 +36,9 @@ async function start(): Promise<void> {
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
-    width: 640,
-    height: 360,
+    // Desenhado em 640×360 e renderizado em 2× (ver UI_ZOOM): texto e pixels nítidos.
+    width: 1280,
+    height: 720,
     pixelArt: true,
     roundPixels: true,
     backgroundColor: '#14101c',

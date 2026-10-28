@@ -7,7 +7,7 @@ import { P } from '../art/palette';
 import { BunkerView } from '../bunker';
 import { store } from '../store';
 import { t, variantOf } from '../text';
-import { txt } from '../ui/buttons';
+import { txt, hiRes } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 export class Countdown extends Phaser.Scene {
@@ -23,6 +23,7 @@ export class Countdown extends Phaser.Scene {
   }
 
   create(): void {
+    hiRes(this);
     fadeIn(this);
     audio.setMood('none');
     this.done = false;

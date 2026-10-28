@@ -5,7 +5,7 @@ import { audio } from '../audio/sfx';
 import { P } from '../art/palette';
 import { store } from '../store';
 import { lines, t } from '../text';
-import { Button, txt } from '../ui/buttons';
+import { Button, txt, hiRes } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 export class Defeat extends Phaser.Scene {
@@ -17,6 +17,7 @@ export class Defeat extends Phaser.Scene {
   }
 
   create(): void {
+    hiRes(this);
     fadeIn(this);
     audio.setMood('none');
     audio.play('defeat');

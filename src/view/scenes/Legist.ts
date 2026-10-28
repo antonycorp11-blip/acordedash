@@ -9,7 +9,7 @@ import { P } from '../art/palette';
 import { iconKey } from '../art/sprites/icons';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, txt } from '../ui/buttons';
+import { Button, txt, hiRes } from '../ui/buttons';
 import { fadeIn, go, startJourney } from './common';
 
 export class Legist extends Phaser.Scene {
@@ -18,6 +18,7 @@ export class Legist extends Phaser.Scene {
   }
 
   create(): void {
+    hiRes(this);
     fadeIn(this);
     const run = store.run;
     if (!run || !run.outcome) {

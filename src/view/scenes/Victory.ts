@@ -7,7 +7,7 @@ import { P } from '../art/palette';
 import { personKey } from '../art/survivors';
 import { store } from '../store';
 import { t, variantOf } from '../text';
-import { Button, txt } from '../ui/buttons';
+import { Button, txt, hiRes } from '../ui/buttons';
 import { fadeIn, go } from './common';
 
 export class Victory extends Phaser.Scene {
@@ -16,6 +16,7 @@ export class Victory extends Phaser.Scene {
   }
 
   create(): void {
+    hiRes(this);
     fadeIn(this);
     audio.setMood('none');
     const run = store.run!;

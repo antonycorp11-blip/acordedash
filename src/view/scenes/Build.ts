@@ -13,7 +13,7 @@ import { BunkerView } from '../bunker';
 import { roomSignals } from '../describe';
 import { store } from '../store';
 import { t } from '../text';
-import { Button, drawPanel, txt } from '../ui/buttons';
+import { Button, drawPanel, txt, hiRes } from '../ui/buttons';
 import { Clock, TOP_H, TopBar } from '../ui/hud';
 import { confirm, Modal } from '../ui/modal';
 import { fadeIn, go, Ticker } from './common';
@@ -47,6 +47,7 @@ export class Build extends Phaser.Scene {
   }
 
   create(): void {
+    hiRes(this);
     fadeIn(this);
     audio.setMood('build');
     this.tool = 'pan';
@@ -71,7 +72,7 @@ export class Build extends Phaser.Scene {
 
   private buildSide(): void {
     const g = this.add.graphics().setDepth(45);
-    drawPanel(g, SIDE_X, TOP_H, 640 - SIDE_X, 360 - TOP_H, P.dirtDark);
+    drawPanel(g, SIDE_X, TOP_H, 640 - SIDE_X, 360 - TOP_H, P.night);
     const tools: Tool[] = ['pan', 'dig', 'fill', 'reinforce', 'install', 'demolish', ...ROOM_TYPES];
     tools.forEach((tool, i) => {
       const col = i % 3;
@@ -79,11 +80,11 @@ export class Build extends Phaser.Scene {
       const isRoom = (ROOM_TYPES as string[]).includes(tool);
       const label = isRoom ? t(`room.short.${tool}`) : t(`tool.${tool}`);
       const icon = iconKey(this, isRoom ? ROOM_ICON[tool as RoomType] : TOOL_ICON[tool]);
-      const b = new Button(this, SIDE_X + 3 + col * 49, TOP_H + 3 + row * 37, 48, 35, { label, icon, size: 13, iconScale: 1.6 }, () => this.selectTool(tool)).setDepth(46);
+      const b = new Button(this, SIDE_X + 3 + col * 49, TOP_H + 3 + row * 37, 48, 35, { label, icon, size: 13, iconScale: 2 }, () => this.selectTool(tool)).setDepth(46);
       this.toolBtns.set(tool, b);
     });
     const infoY = TOP_H + 3 + 5 * 37 + 2;
-    this.add.rectangle(SIDE_X + 3, infoY, 146, 360 - infoY - 46, P.ink, 0.6).setOrigin(0, 0).setDepth(45);
+    this.add.rectangle(SIDE_X + 3, infoY, 146, 360 - infoY - 46, 0x16111f, 1).setOrigin(0, 0).setDepth(45);
     this.info = txt(this, SIDE_X + 7, infoY + 3, '', 14, P.paper, { wrap: 138, maxLines: store.settings.bigText ? 5 : 6 }).setDepth(46);
     this.hatchBtn = new Button(this, SIDE_X + 3, 316, 72, 40, { icon: iconKey(this, 'hatch'), label: ' ', size: 12, iconScale: 1.6 }, () => {
       const r = store.dispatch({ t: 'hatch', open: !store.run!.hatchOpen });

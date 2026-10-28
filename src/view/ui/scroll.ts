@@ -1,6 +1,7 @@
 // Área rolável: arrastar com o dedo ou a roda do mouse.
 
 import Phaser from 'phaser';
+import { ptr } from './buttons';
 
 export class ScrollArea {
   readonly content: Phaser.GameObjects.Container;
@@ -20,14 +21,15 @@ export class ScrollArea {
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (this.inside(p)) {
         this.dragging = true;
-        this.lastY = p.y;
+        this.lastY = ptr(p).y;
         this.moved = 0;
       }
     });
     scene.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (!this.dragging || !p.isDown) return;
-      const dy = p.y - this.lastY;
-      this.lastY = p.y;
+      const y = ptr(p).y;
+      const dy = y - this.lastY;
+      this.lastY = y;
       this.moved += Math.abs(dy);
       this.scrollBy(-dy);
     });
@@ -37,7 +39,8 @@ export class ScrollArea {
     });
   }
 
-  private inside(p: Phaser.Input.Pointer): boolean {
+  private inside(pointer: Phaser.Input.Pointer): boolean {
+    const p = ptr(pointer);
     return p.x >= this.x && p.x <= this.x + this.w && p.y >= this.y && p.y <= this.y + this.h;
   }
 

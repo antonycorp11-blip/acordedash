@@ -68,3 +68,44 @@ export function makeTexture(scene: Phaser.Scene, key: string, w: number, h: numb
   tex.refresh();
   return key;
 }
+
+/** Contorno de 1 pixel em volta de tudo que não é transparente. */
+export function outlineCanvas(ctx: CanvasRenderingContext2D, w: number, h: number, color: number): void {
+  const img = ctx.getImageData(0, 0, w, h);
+  const d = img.data;
+  const solid = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && d[(y * w + x) * 4 + 3] > 40;
+  const mark: number[] = [];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (solid(x, y)) continue;
+      if (solid(x - 1, y) || solid(x + 1, y) || solid(x, y - 1) || solid(x, y + 1)) mark.push(y * w + x);
+    }
+  }
+  const r = (color >> 16) & 255;
+  const g = (color >> 8) & 255;
+  const b = color & 255;
+  for (const i of mark) {
+    d[i * 4] = r;
+    d[i * 4 + 1] = g;
+    d[i * 4 + 2] = b;
+    d[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+/** Gradiente radial suave (luz). Branco no centro, transparente na borda. */
+export function lightTexture(scene: Phaser.Scene, key: string, size: number, color = 0xffffff): string {
+  if (scene.textures.exists(key)) return key;
+  const tex = scene.textures.createCanvas(key, size, size);
+  if (!tex) return key;
+  const ctx = tex.getContext();
+  const grd = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  const c = hex(color);
+  grd.addColorStop(0, c + 'ff');
+  grd.addColorStop(0.45, c + 'b0');
+  grd.addColorStop(1, c + '00');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, size, size);
+  tex.refresh();
+  return key;
+}
