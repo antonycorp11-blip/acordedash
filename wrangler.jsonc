@@ -1,0 +1,9 @@
+{
+  // Deploy na Cloudflare: o Worker só serve os arquivos estáticos gerados pelo Vite.
+  "name": "acordedash",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

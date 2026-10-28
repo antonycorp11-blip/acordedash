@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "batch": "tsx scripts/batch.ts"
+    "batch": "tsx scripts/batch.ts",
+    "check": "tsc --noEmit && vitest run && vite build"
   },
   "dependencies": {
     "phaser": "3.90.0"
@@ -20,5 +21,8 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

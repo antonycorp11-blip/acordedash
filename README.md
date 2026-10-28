@@ -14,10 +14,16 @@ com o mundo e aguentar mais 30 (depois 60, depois 90) dias lá embaixo.
 ```bash
 npm install
 npm run dev        # servidor de desenvolvimento
-npm run build      # checagem de tipos + build de produção em dist/
+npm run build      # build de produção em dist/
+npm run check      # tipos + testes + build (rodar antes de publicar)
 npm test           # testes da simulação, textos e saves
 npm run batch -- 90  # simulação em lote (90 runs) com relatório
 ```
+
+## Publicação
+
+O site é um Worker da Cloudflare que serve a pasta `dist` (ver `wrangler.jsonc`).
+No painel: comando de build `npm run build`, comando de deploy `npx wrangler deploy`.
 
 ## Estrutura
 
