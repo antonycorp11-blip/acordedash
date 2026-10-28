@@ -1,0 +1,66 @@
+// Ponto de entrada: carrega as fontes, cria o jogo Phaser e liga a
+// infraestrutura do navegador (orientação, salvamento ao sair, áudio).
+
+import Phaser from 'phaser';
+import { watchOrientation } from './infra/orientation';
+import { PT_BR } from './strings/pt-BR';
+import { audio } from './view/audio/sfx';
+import { Boot } from './view/scenes/Boot';
+import { Build } from './view/scenes/Build';
+import { Countdown } from './view/scenes/Countdown';
+import { Defeat } from './view/scenes/Defeat';
+import { Dev } from './view/scenes/Dev';
+import { Diary } from './view/scenes/Diary';
+import { Ending } from './view/scenes/Ending';
+import { EventScene } from './view/scenes/Event';
+import { Explosion } from './view/scenes/Explosion';
+import { Intro } from './view/scenes/Intro';
+import { Legist } from './view/scenes/Legist';
+import { Settings } from './view/scenes/Settings';
+import { Skills } from './view/scenes/Skills';
+import { Survival } from './view/scenes/Survival';
+import { Title } from './view/scenes/Title';
+import { Victory } from './view/scenes/Victory';
+import { store } from './view/store';
+
+async function loadFonts(): Promise<void> {
+  if (!('fonts' in document)) return;
+  const wait = Promise.all([document.fonts.load("16px 'VT323'"), document.fonts.load("12px 'Press Start 2P'")]);
+  // Sem rede, segue com a fonte do sistema depois de um instante.
+  await Promise.race([wait, new Promise((r) => setTimeout(r, 2500))]).catch(() => undefined);
+}
+
+async function start(): Promise<void> {
+  document.title = String(PT_BR['game.title']);
+  await loadFonts();
+  const game = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'game',
+    width: 640,
+    height: 360,
+    pixelArt: true,
+    roundPixels: true,
+    backgroundColor: '#14101c',
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    input: { activePointers: 3 },
+    fps: { target: 60 },
+    scene: [Boot, Title, Intro, Build, Countdown, Explosion, Survival, EventScene, Victory, Defeat, Legist, Diary, Skills, Ending, Settings, Dev],
+  });
+
+  let speedBeforeBlock = store.speed;
+  watchOrientation(String(PT_BR['rotate']), (blocked) => {
+    if (blocked) {
+      speedBeforeBlock = store.speed;
+      store.speed = 0;
+    } else if (store.speed === 0) store.speed = speedBeforeBlock;
+  });
+  const saveNow = () => store.save();
+  document.addEventListener('visibilitychange', () => document.hidden && saveNow());
+  window.addEventListener('pagehide', saveNow);
+  window.addEventListener('pointerdown', () => audio.unlock(), { passive: true });
+  window.addEventListener('keydown', () => audio.unlock());
+  // Só em desenvolvimento: acesso ao estado para testes automatizados no navegador.
+  if (import.meta.env.DEV) Object.assign(window, { __store: store, __game: game });
+}
+
+void start();

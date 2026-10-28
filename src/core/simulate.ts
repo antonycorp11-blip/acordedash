@@ -97,7 +97,7 @@ export function advanceBuild(s: RunState, minutes: number): void {
 
 function buildDayStart(s: RunState, dayIndex: number): void {
   const left = T.buildDays - dayIndex;
-  if (left === 1 && s.hatchOpen) say(s, 'msg.hatchReminder');
+  if (left === 1) say(s, s.hatchOpen ? 'msg.hatchReminder' : 'msg.lastDay');
   else if (left > 0) say(s, 'msg.daysLeft', { dias: left });
 }
 

@@ -78,7 +78,7 @@ export function expel(s: RunState, personId: number): boolean {
   if (!p || p.archetype === 'viajante') return false;
   p.left = true;
   s.stats.abandoned++;
-  for (const o of alivePeople(s)) o.morale = Math.max(0, o.morale - 6);
+  for (const o of alivePeople(s)) o.morale = Math.max(0, o.morale + BALANCE.morale.expelOthers);
   say(s, 'msg.expelled', personParams(p));
   addLog(s, 'log.expelled', personParams(p));
   return true;

@@ -161,6 +161,8 @@ export const BALANCE = {
     markPenalty: -2,
     skillBonus: 3,
     needsMet: 2,
+    deathOthers: -8,
+    expelOthers: -6,
     /** quantas salas por trabalhador antes de sobrecarregar */
     overworkRoomsPerWorker: 2,
   },
@@ -209,6 +211,7 @@ export const BALANCE = {
   },
 
   emergencies: {
+    generatorFailWear: 20,
     fixGeneratorParts: 2,
     fixGeneratorChance: 0.85,
     hackGeneratorHours: 8,

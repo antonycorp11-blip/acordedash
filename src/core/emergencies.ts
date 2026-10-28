@@ -57,9 +57,10 @@ function moveOut(s: RunState, r: Room): void {
 const DEFS: EmergencyDef[] = [
   {
     type: 'gerador',
-    weight: (s) => (roomsOf(s, 'generator').some((g) => g.wear < 100) ? 1.2 : 0),
+    // Só gerador já cansado quebra de vez: quem cuida da energia adia o problema.
+    weight: (s) => (roomsOf(s, 'generator').some((g) => g.wear >= E.generatorFailWear && g.wear < 100) ? 1 : 0),
     spawn: (s, e) => {
-      const g = pick(s, roomsOf(s, 'generator').filter((x) => x.wear < 100));
+      const g = pick(s, roomsOf(s, 'generator').filter((x) => x.wear >= E.generatorFailWear && x.wear < 100));
       e.targetRoom = g.id;
       g.wear = 100;
       s.brokeToday = true;

@@ -43,10 +43,10 @@ export function killPerson(s: RunState, p: Person, cause: DeathCause): void {
   p.health = 'morto';
   p.deathCause = cause;
   p.deathDay = survivalDay(s);
-  addChain(s, 'chain.death', { pessoa: p.nameId, causa: cause });
+  addChain(s, p.archetype === 'viajante' ? 'chain.deathMe' : 'chain.death', { pessoa: p.nameId, causa: cause });
   if (p.archetype === 'viajante') return;
   say(s, 'msg.death', { pessoa: p.nameId, causa: cause });
-  for (const o of alivePeople(s)) o.morale = Math.max(0, o.morale - 8);
+  for (const o of alivePeople(s)) o.morale = Math.max(0, o.morale + BALANCE.morale.deathOthers);
 }
 
 export function personParams(p: Person): { pessoa: number } {
